@@ -7,7 +7,7 @@ import {
   SandpackCodeEditor,
   SandpackPreview,
 } from "@codesandbox/sandpack-react";
-import { CodeGenerationContext } from '@/app/page';
+import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext';
 
 const defaultCode = `export default function App() {
   return <h1>Welcome to the AI Code Generator!</h1>
@@ -15,7 +15,7 @@ const defaultCode = `export default function App() {
 
 export const CodeGenerator = ({ id }) => {
   const { connectors: { connect, drag }} = useNode();
-  const { generatedCodes, isGenerating, selectedId } = useContext(CodeGenerationContext);
+  const { generatedCodes, isGenerating, selectedId } = useCodeGenerationContext();
 
   // Use the id to determine which code to display
   const codeToDisplay = generatedCodes[id] || defaultCode;

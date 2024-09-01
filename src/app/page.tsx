@@ -16,6 +16,7 @@ import { CodeGenerator } from '@/components/codeGenerator'
 import { ResizableComponent } from '@/components/resizableComponent'
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { PlaceholdersAndVanishInput } from '@/components/ui/placeholders-and-vanish-input'
+import { CodeGenerationContext } from '@/contexts/CodeGenerationContext'
 
 
 interface NewContentProps {
@@ -195,7 +196,7 @@ const ContentUpdater = () => {
 };
 
 
-const CodeGenerationContext = createContext(null);
+// export const CodeGenerationContext = createContext(null);
 
 const defaultCode = `export default function App() {
   return <h1>Welcome to the AI Code Generator!</h1>
@@ -234,7 +235,7 @@ const App = () => {
           'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
         },
         body: JSON.stringify({
-          sessionId: '01255',
+          sessionId: '012575',
           prompt,
           mode: 'DETAIL',
         }),
@@ -324,7 +325,7 @@ const App = () => {
         </Editor>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-transparent dark:bg-zinc-900 shadow-lg p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-transparen dark:bg-zinc-900 shadow-lg p-4">
         <div className="max-w-4xl mx-auto">
           <PlaceholdersAndVanishInput
             placeholders={placeholders}
@@ -338,6 +339,5 @@ const App = () => {
   );
 };
 
-export { CodeGenerationContext };
 
 export default App

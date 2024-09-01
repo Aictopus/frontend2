@@ -2,14 +2,14 @@ import React, { useRef, useEffect, useState, useContext } from 'react';
 import { useNode } from '@craftjs/core';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
-import { CodeGenerationContext } from '@/app/page';
+import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext';
 import { PreviewContext } from '@/components/wrapper';
 
 export const ResizableComponent = ({id = '1', width = 'auto', height = 'auto', children }) => {
   const { connectors: { connect, drag }, actions: { setProp } } = useNode();
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const { selectedId, setSelectedId } = useContext(CodeGenerationContext);
+  const { selectedId, setSelectedId } = useCodeGenerationContext();
   const { isPreview } = useContext(PreviewContext);
 
   useEffect(() => {

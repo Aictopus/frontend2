@@ -11,7 +11,7 @@ export const componentStrings = [
 `,
 `
 <ResizableComponent id="3" width="40%" height="40%" className="p-4">
-  Hi
+  Header
 </ResizableComponent>
 `
  ];
