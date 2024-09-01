@@ -195,7 +195,7 @@ const ContentUpdater = () => {
 };
 
 
-export const CodeGenerationContext = createContext(null);
+const CodeGenerationContext = createContext(null);
 
 const defaultCode = `export default function App() {
   return <h1>Welcome to the AI Code Generator!</h1>
@@ -338,5 +338,6 @@ const App = () => {
   );
 };
 
+export { CodeGenerationContext };
 
 export default App

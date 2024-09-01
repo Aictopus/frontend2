@@ -13,6 +13,14 @@ import {
 import { NodeCalendar } from '@/components/node/calendar'
 import { renderComponents } from '@/lib/componentRenderer'
 import { componentMap, componentNameMap } from '@/lib/component-map'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 function getComponentName(type) {
 	if (typeof type === 'string') {
@@ -162,180 +170,192 @@ const createCraftElement = (component) => {
 };
 
 export const ControlPanel = () => {
-	const { active, related, query, actions } = useEditor((state, query) => ({
-		active: query.getEvent('selected').first(),
-		related: state.nodes[query.getEvent('selected').first()]?.related
-	}))
+  const { active, related, query, actions } = useEditor((state, query) => ({
+    active: query.getEvent('selected').first(),
+    related: state.nodes[query.getEvent('selected').first()]?.related
+  }))
 
-	const [variants, setVariants] = useState([])
-	const [editorKey, setEditorKey] = useState(0)
-	const prevActiveRef = useRef(null)
+  const [variants, setVariants] = useState([])
+  const [editorKey, setEditorKey] = useState(0)
+  const prevActiveRef = useRef(null)
+  const [isOpen, setIsOpen] = useState(false)
 
-	useEffect(() => {
-		if (active && active !== 'ROOT') {
-			const node = query.node(active).get()
-			if (node) {
-				const baseString = generateComponentString(node, query)
-				console.log('Base component string:', baseString)
+  useEffect(() => {
+    if (active && active !== 'ROOT') {
+      const node = query.node(active).get()
+      if (node) {
+        const baseString = generateComponentString(node, query)
+        console.log('Base component string:', baseString)
 
-				// Generate 5 variants with different background colors
-				const newVariants = [
-					{ string: baseString, props: node.data.props },
-					...Array(5)
-						.fill(null)
-						.map(() => {
-							const bgColorClass = generateRandomBgColor()
-							const variantProps = {
-								...node.data.props,
-								className: `${node.data.props.className ||
-									''} ${bgColorClass}`.trim()
-							}
-							const variantNode = {
-								...node,
-								data: { ...node.data, props: variantProps }
-							}
-							const variantString = generateComponentString(variantNode, query)
-							console.log('Variant string:', variantString)
-							return { string: variantString, props: variantProps }
-						})
-				]
+        // Generate 5 variants with different background colors
+        const newVariants = [
+          { string: baseString, props: node.data.props },
+          ...Array(5)
+            .fill(null)
+            .map(() => {
+              const bgColorClass = generateRandomBgColor()
+              const variantProps = {
+                ...node.data.props,
+                className: `${node.data.props.className || ''} ${bgColorClass}`.trim()
+              }
+              const variantNode = {
+                ...node,
+                data: { ...node.data, props: variantProps }
+              }
+              const variantString = generateComponentString(variantNode, query)
+              console.log('Variant string:', variantString)
+              return { string: variantString, props: variantProps }
+            })
+        ]
 
-				setVariants(newVariants)
+        setVariants(newVariants)
 
-				// If the active component has changed, increment the editorKey
-				if (active !== prevActiveRef.current) {
-					setEditorKey((prev) => prev + 1)
-					prevActiveRef.current = active
-				}
-			}
-		} else {
-			setVariants([])
-		}
-	}, [active, query])
+        // If the active component has changed, increment the editorKey
+        if (active !== prevActiveRef.current) {
+          setEditorKey((prev) => prev + 1)
+          prevActiveRef.current = active
+        }
+      }
+    } else {
+      setVariants([])
+    }
+  }, [active, query])
 
-	const handleReplace = (variantProps) => {
-		if (active && active !== 'ROOT') {
-			actions.setProp(active, (props) => {
-				Object.assign(props, variantProps)
-			})
-		}
-	}
+  const handleReplace = (variantProps) => {
+    if (active && active !== 'ROOT') {
+      actions.setProp(active, (props) => {
+        Object.assign(props, variantProps)
+      })
+    }
+    setIsOpen(false)
+  }
 
-	const handleFullReplace = (variantString) => {
-		if (active && active !== 'ROOT') {
-			const node = query.node(active).get()
-			const parentId = node.data.parent
-			const currentIndex = query
-				.node(parentId)
-				.get()
-				.data.nodes.indexOf(active)
+  const handleFullReplace = (variantString) => {
+    if (active && active !== 'ROOT') {
+      const node = query.node(active).get()
+      const parentId = node.data.parent
+      const currentIndex = query
+        .node(parentId)
+        .get()
+        .data.nodes.indexOf(active)
 
-			try {
-				const parsedComponents = renderComponents(variantString)
+      try {
+        const parsedComponents = renderComponents(variantString)
 
-				const processComponent = (component) => {
-					const craftElement = createCraftElement(component)
+        const processComponent = (component) => {
+          const craftElement = createCraftElement(component)
 
-					if (craftElement) {
-						console.log('craftElement', craftElement)
-						const nodeTree = query.parseReactElement(craftElement).toNodeTree()
-						actions.addNodeTree(nodeTree, parentId, currentIndex)
-						console.log('nodeTree', nodeTree)
-					}
-				}
+          if (craftElement) {
+            console.log('craftElement', craftElement)
+            const nodeTree = query.parseReactElement(craftElement).toNodeTree()
+            actions.addNodeTree(nodeTree, parentId, currentIndex)
+            console.log('nodeTree', nodeTree)
+          }
+        }
 
-				console.log('Parsed components:', parsedComponents)
+        console.log('Parsed components:', parsedComponents)
 
-				if (Array.isArray(parsedComponents)) {
-					console.log('!')
-					parsedComponents.forEach(processComponent)
-				} else {
-					console.log('!!')
-					processComponent(parsedComponents)
-				}
+        if (Array.isArray(parsedComponents)) {
+          console.log('!')
+          parsedComponents.forEach(processComponent)
+        } else {
+          console.log('!!')
+          processComponent(parsedComponents)
+        }
 
-				// Delete the old node
-				actions.delete(active)
-			} catch (error) {
-				console.error('Error updating content:', error)
-			}
-		}
-	}
+        // Delete the old node
+        actions.delete(active)
+      } catch (error) {
+        console.error('Error updating content:', error)
+      }
+    }
+    setIsOpen(false)
+  }
 
-	return (
-		<div className="w-80 border-l h-auto overflow-auto">
-			{active && active !== 'ROOT' && (
-				<div className="p-4">
-					<h4 className="text-sm font-semibold mt-4 mb-2">Variants:</h4>
-					{variants.map((variant, index) => {
-						const VariantComponent = renderComponents(variant.string)
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="ml-2">
+          Variants
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+        <DialogHeader>
+          <DialogTitle>Component Variants</DialogTitle>
+        </DialogHeader>
+        {active && active !== 'ROOT' && (
+          <div className="p-4">
+            <h4 className="text-sm font-semibold mt-4 mb-2">Variants:</h4>
+            {variants.map((variant, index) => {
+              const VariantComponent = renderComponents(variant.string)
 
-						return (
-							<div
-								key={`${editorKey}-${index}`}
-								className="mb-4 border p-2 rounded"
-							>
-								<div className="mb-2" style={{ height: '100px' }}>
-									<Editor
-										key={`${editorKey}-${index}`}
-										resolver={{
-											...componentMap
-										}}
-									>
-										<VariantCanvas>
-											{/* <VariantComponent /> */}
-											{VariantComponent}
-										</VariantCanvas>
-									</Editor>
-								</div>
-								<pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto mb-2">
-									<code>{variant.string}</code>
-								</pre>
-								<p className="text-xs text-gray-600 mb-2">
-									Class: {variant.props.className}
-								</p>
-								<button
-									className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-2"
-									onClick={() => handleReplace(variant.props)}
-								>
-									Replace Props
-								</button>
-								<button
-									className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-									onClick={() => handleFullReplace(variant.string)}
-								>
-									Full Replace
-								</button>
-							</div>
-						)
-					})}
+              return (
+                <div
+                  key={`${editorKey}-${index}`}
+                  className="mb-4 border p-2 rounded"
+                >
+                  <div className="mb-2" style={{ height: '100px' }}>
+                    <Editor
+                      key={`${editorKey}-${index}`}
+                      resolver={{
+                        ...componentMap
+                      }}
+                    >
+                      <VariantCanvas>
+                        {VariantComponent}
+                      </VariantCanvas>
+                    </Editor>
+                  </div>
+                  <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto mb-2">
+                    <code>{variant.string}</code>
+                  </pre>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Class: {variant.props.className}
+                  </p>
+                  <Button
+                    variant="default"
+                    className="mr-2"
+                    onClick={() => handleReplace(variant.props)}
+                  >
+                    Replace Props
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleFullReplace(variant.string)}
+                  >
+                    Full Replace
+                  </Button>
+                </div>
+              )
+            })}
 
-					<h4 className="text-sm font-semibold mt-6 mb-2">
-						Unrelated Component:
-					</h4>
-					<div className="mb-4 border p-2 rounded">
-						<div className="mb-2" style={{ height: '100px' }}>
-							<Editor
-								resolver={{
-									...componentMap,
-									UnrelatedButton
-								}}
-							>
-								<VariantCanvas>
-									<UnrelatedButton />
-								</VariantCanvas>
-							</Editor>
-						</div>
-						<button
-							className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
-							onClick={() => handleFullReplace(UnrelatedButton)}
-						>
-							Replace with Unrelated Button
-						</button>
-					</div>
-				</div>
-			)}
-			{active && related?.toolbar && React.createElement(related.toolbar)}
-		</div>
-	)
+            <h4 className="text-sm font-semibold mt-6 mb-2">
+              Unrelated Component:
+            </h4>
+            <div className="mb-4 border p-2 rounded">
+              <div className="mb-2" style={{ height: '100px' }}>
+                <Editor
+                  resolver={{
+                    ...componentMap,
+                    UnrelatedButton
+                  }}
+                >
+                  <VariantCanvas>
+                    <UnrelatedButton />
+                  </VariantCanvas>
+                </Editor>
+              </div>
+              <Button
+                variant="default"
+                onClick={() => handleFullReplace(UnrelatedButton)}
+              >
+                Replace with Unrelated Button
+              </Button>
+            </div>
+          </div>
+        )}
+        {active && related?.toolbar && React.createElement(related.toolbar)}
+      </DialogContent>
+    </Dialog>
+  )
 }
