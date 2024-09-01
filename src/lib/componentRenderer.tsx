@@ -21,10 +21,15 @@ function parseProps(attributesString) {
   return props;
 }
 
+type ChildProps = {
+  id?: string;
+  // other props...
+};
+
 function createComponent(name, props, children) {
   let Component = componentMap[name];
   if (Component) {
-    if (Component === ResizableComponent ) {
+    if (Component === ResizableComponent) {
       return (
         <Element
           key={Math.random()}
@@ -32,11 +37,15 @@ function createComponent(name, props, children) {
           canvas
           {...props}
         >
-          {children}
+          {React.Children.map(children, child =>
+            React.isValidElement(child)
+              ? React.cloneElement(child, { id: props.id } as ChildProps)
+              : child
+          )}
         </Element>
       );
     } else if (Component === DynamicContent) {
-      console.log('Creating DynamicContent',);
+      console.log('Creating DynamicContent');
       return (
         <Element
           key={Math.random()}
@@ -47,53 +56,27 @@ function createComponent(name, props, children) {
           {children}
         </Element>
       );
-    }
-    
-    {
+    } else {
       return <Element key={Math.random()} is={Component} canvas {...props}>{children}</Element>;
     }
   } else {
     // Handle native HTML elements
     const processedChildren = children.map(child => {
       if (React.isValidElement(child)) {
-        // If the child is already a React element, return it as is
         return child;
       } else if (typeof child === 'string') {
-        // If the child is a string, return it as is
         return child;
       } else if (Array.isArray(child)) {
-        // If the child is an array, recursively process it
         return child.map(subChild => createComponent(subChild.type, subChild.props, subChild.props.children));
       } else if (typeof child === 'object' && child !== null) {
-        // If the child is an object (likely a VDOM representation), convert it to a React element
         return createComponent(child.type, child.props, child.props.children);
       }
-      // If it's none of the above, return null (this shouldn't happen in normal circumstances)
       return null;
     }).filter(child => child !== null);
-    console.log(`Creating component: ${name}`, processedChildren); // Add logging
+    console.log(`Creating component: ${name}`, processedChildren);
     return React.createElement(name, { key: Math.random(), ...props }, ...processedChildren);
   }
 }
-// function createComponent(name, props, children) {
-//   let Component = componentMap[name];
-//   if (Component) {
-//     // 为所有组件添加 canvas 属性
-//     return (
-//       <Element
-//         key={Math.random()}
-//         is={Component}
-//         canvas
-//         {...props}
-//       >
-//         {children}
-//       </Element>
-//     );
-//   } else {
-//     // 处理原生 HTML 元素
-//     return React.createElement(name, { key: Math.random(), ...props }, children);
-//   }
-// }
 
 export function renderComponents(componentsString) {
   const regex = /<(\w+)(\s[^>]*)?>(.*?)<\/\1>|<(\w+)(\s[^>]*)?\/>|([^<]+)/gs;
@@ -106,8 +89,7 @@ export function renderComponents(componentsString) {
     if (componentName || selfClosingName) {
       const name = componentName || selfClosingName;
       const props = parseProps(attributes || selfClosingAttributes);
-      console.log(`Creating component: ${name}`); // 添加日志
-
+      console.log(`Creating component: ${name}`);
 
       let childComponents = [];
       if (children) {

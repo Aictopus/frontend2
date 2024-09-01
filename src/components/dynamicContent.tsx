@@ -11,7 +11,7 @@ export const DynamicContent = ({ children }) => {
     ref={(ref) => connect(drag(ref)) as any}
 			// className="bg-yellow-100 p-4 min-h-[100px] m-2 border border-dashed border-yellow-300"
 		>
-			<h3 className="text-lg font-bold mb-2 border border-blue-400">Dynamic Content Container</h3>
+			{/* <h3 className="text-lg font-bold mb-2 border border-blue-400">Dynamic Content Container</h3> */}
 			{children}
 		</div>
 	)

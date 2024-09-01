@@ -1,5 +1,6 @@
+// @/app/page.tsx
 "use client"
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState,createContext } from 'react'
 import { Editor, Frame, Element, useEditor, useNode } from '@craftjs/core'
 import { renderComponents } from '@/lib/componentRenderer'
 import { Canvas } from '@/components/canvas'
@@ -11,6 +12,9 @@ import { componentsMap } from '@/components/node/components-map'
 import { DynamicContent } from '@/components/dynamicContent';
 import { componentMap } from '@/lib/component-map'
 import { componentStrings } from '@/lib/test-string'
+import { CodeGenerator } from '@/components/codeGenerator'
+import { ResizableComponent } from '@/components/resizableComponent'
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 interface NewContentProps {
   buttonStrings: string[];
@@ -188,45 +192,136 @@ const ContentUpdater = () => {
   return null;
 };
 
-const mystring = `<h3 class="text-lg font-semibold mb-2">Raw HTML Section</h3>
-          <p>This is a paragraph with <strong>bold</strong> and <em>italic</em> text.</p>
-          <ul>
-            <li>List item 1</li>
-            <li>List item 2</li>
-            <li>List item 3</li>
-          </ul>`
 
-// App component
+export const CodeGenerationContext = createContext(null);
+
+const defaultCode = `export default function App() {
+  return <h1>Welcome to the AI Code Generator!</h1>
+}`;
+
 const App = () => {
-	return (
-		<div className="p-4">
-			{/* <h1 className="text-2xl font-bold mb-4">Dynamic Button Rendering Demo</h1> */}
-			<Editor
-				resolver={{
-          ...componentMap,
-					TextBox,
-					Container,
-					NewContent,
-					Canvas,
-					Wrapper,
-				}}
-			>
-				<div className="flex flex-1 relative overflow-hidden">
-					<SideMenu componentsMap={componentsMap} />
-					<Viewport>
-						<Frame>
-							<Element is={Wrapper} canvas>
-                {/* <CodeGenerator></CodeGenerator> */}
-								<Element is={DynamicContent}>{null}</Element>
-							</Element>
-						</Frame>
-					</Viewport>
-					<ControlPanel />
-				</div>
-				<ContentUpdater />
-			</Editor>
-		</div>
-	)
-}
+  const [prompt, setPrompt] = useState('');
+  const [selectedId, setSelectedId] = useState('1');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedCodes, setGeneratedCodes] = useState({
+    '1': defaultCode,
+    '2': defaultCode
+  });
+  const [error, setError] = useState(null);
+
+  const handleGenerate = async () => {
+    if (prompt.trim() === '') {
+      setError('Please enter a prompt before generating code.');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    // Clear the existing code for the selected component
+    setGeneratedCodes(prevCodes => ({
+      ...prevCodes,
+      [selectedId]: ''
+    }));
+
+    try {
+      await fetchEventSource('https://api-dev.aictopusde.com/api/v1/ai/generate-pages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
+        },
+        body: JSON.stringify({
+          sessionId: '01255',
+          prompt,
+          mode: 'DETAIL',
+        }),
+        async onopen(response) {
+          if (!response.ok || response.headers.get('content-type') !== 'text/event-stream') {
+            throw new Error('Failed to establish connection');
+          }
+        },
+        onmessage(event) {
+          const line = event.data.replace(/data:\s*/g, '');
+          setGeneratedCodes(prevCodes => ({
+            ...prevCodes,
+            [selectedId]: (prevCodes[selectedId] || '') + (line || ' ')
+          }));
+        },
+        onerror(err) {
+          throw err;
+        },
+        onclose() {
+          setIsGenerating(false);
+        },
+        openWhenHidden: true,
+      });
+    } catch (error) {
+      console.error('Error generating code:', error);
+      setError('An error occurred while generating code. Please try again.');
+      setIsGenerating(false);
+    }
+  };
+
+  const contextValue = {
+    prompt,
+    setPrompt,
+    isGenerating,
+    setIsGenerating,
+    generatedCodes,
+    setGeneratedCodes,
+    error,
+    setError,
+    handleGenerate,
+    selectedId,
+    setSelectedId
+  };
+
+  return (
+    <CodeGenerationContext.Provider value={contextValue}>
+      <div className="p-4">
+        <div className="mb-4 flex items-center">
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Enter your prompt"
+            className="flex-grow p-2 mr-2 border border-gray-300 rounded"
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+          >
+            {isGenerating ? 'Generating...' : 'Generate Code'}
+          </button>
+        </div>
+        {error && <p className="text-red-500 mt-2">{error}</p>}
+        <Editor
+          resolver={{
+            ...componentMap,
+            CodeGenerator,
+            ResizableComponent,
+            Wrapper,
+          }}
+        >
+          <div className="flex flex-1 relative overflow-hidden">
+            <SideMenu componentsMap={componentsMap} />
+            <Viewport>
+              <Frame>
+                <Element is={Wrapper} canvas>
+                  <Element is={DynamicContent}>{null}</Element>
+                </Element>
+              </Frame>
+            </Viewport>
+            <ControlPanel />
+          </div>
+          <ContentUpdater />
+        </Editor>
+      </div>
+    </CodeGenerationContext.Provider>
+  );
+};
+
 
 export default App
