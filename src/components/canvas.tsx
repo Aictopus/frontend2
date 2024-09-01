@@ -1,9 +1,14 @@
 import { useEditor, useNode } from '@craftjs/core';
-import { MonitorPlay, Smartphone, Code, Redo, Undo } from 'lucide-react';
-import React, { useState } from 'react';
+import { MonitorPlay, Smartphone, Code, Redo, Undo, Eye, EyeOff } from 'lucide-react';
+import React, { useState, createContext } from 'react';
 import { getOutputCode, getOutputHTMLFromId } from '@/lib/code-gen';
 import { CodeView } from '@/components/code-view';
 import { DrawerTrigger, DrawerContent, Drawer } from '@/components/ui/drawer';
+
+export const PreviewContext = createContext({
+  isPreview: false,
+  setIsPreview: (value: boolean) => {}
+});
 
 type CanvasProps = {
   children: React.ReactNode;
@@ -21,6 +26,9 @@ export const Canvas = ({ children, style = {} }: CanvasProps) => {
   }));
   const [output, setOutput] = useState<string | null>();
   const [htmlOutput, setHtmlOutput] = useState<string | null>();
+  const [open, setOpen] = useState(false);
+  const [htmlOpen, setHtmlOpen] = useState(false);
+  const [isPreview, setIsPreview] = useState(false);
 
   const generateCode = () => {
     const nodes = query.getNodes();
@@ -38,105 +46,100 @@ export const Canvas = ({ children, style = {} }: CanvasProps) => {
     setHtmlOutput(htmlOutput);
   };
 
-  const [open, setOpen] = useState(false);
-  const [htmlOpen, setHtmlOpen] = useState(false);
-
   const handleIconClick = (newWidth: any) => {
     setCanvasWidth(newWidth);
   };
 
+  const togglePreview = () => {
+    setIsPreview(!isPreview);
+  };
+
   return (
-    <div className="w-full h-full flex justify-center" style={style}>
-      <div className={`${canvasWidth} flex flex-col h-full border rounded-sm`}>
-        <div className="flex justify-between items-center p-4 w-full bg-gray-200">
-          <div className="flex gap-3">
-            {/* <div className="h-3 w-3 rounded-full bg-red-400"></div>
-            <div className="h-3 w-3 rounded-full bg-yellow-400"></div>
-            <div className="h-3 w-3 rounded-full bg-green-400"></div> */}
-          </div>
-          <div className="flex gap-2">
-            <Drawer
-              open={open}
-              onOpenChange={(value: boolean) => {
-                generateCode();
-                setOpen(value);
-              }}
-            >
-              <DrawerTrigger>
-                <Code
-                  size={24}
-                  strokeWidth={1.75}
-                  className="text-gray-500 hover:text-primary transition duration-300"
-                />
-              </DrawerTrigger>
-
-              <DrawerContent className="h-[75vh]">
-                <CodeView codeString={output as string} />
-              </DrawerContent>
-            </Drawer>
-            {/* <Drawer
-              open={htmlOpen}
-              onOpenChange={(value: boolean) => {
-                generateHTML();
-                setHtmlOpen(value);
-              }}
-            >
-              <DrawerTrigger>
-                <FileCode2
-                  size={24}
-                  strokeWidth={1.75}
-                  className="text-gray-500 hover:text-primary transition duration-300"
-                />
-              </DrawerTrigger>
-
-              <DrawerContent className="h-[75vh]">
-                <CodeView codeString={htmlOutput as string} />
-              </DrawerContent>
-            </Drawer> */}
-          </div>
-
-          <div className="flex items-center gap-2 opacity-80 active:text-primary">
-            <div className="flex">
-              <div className="w-8">
-                {canUndo && (
-                  <Undo
+    <PreviewContext.Provider value={{ isPreview, setIsPreview }}>
+      <div className="w-full h-full flex justify-center" style={style}>
+        <div className={`${canvasWidth} flex flex-col h-full border rounded-sm`}>
+          <div className="flex justify-between items-center p-4 w-full bg-gray-200">
+            <div className="flex gap-3">
+              {/* Existing code */}
+            </div>
+            <div className="flex items-center gap-4">
+              <Drawer
+                open={open}
+                onOpenChange={(value: boolean) => {
+                  generateCode();
+                  setOpen(value);
+                }}
+              >
+                <DrawerTrigger>
+                  <Code
                     size={24}
                     strokeWidth={1.75}
                     className="text-gray-500 hover:text-primary transition duration-300"
-                    onClick={(event) => {
-                      actions.history.undo();
-                    }}
                   />
-                )}
+                </DrawerTrigger>
+
+                <DrawerContent className="h-[75vh]">
+                  <CodeView codeString={output as string} />
+                </DrawerContent>
+              </Drawer>
+              
+              <div className="flex items-center gap-2">
+                <div className="w-8">
+                  {canUndo && (
+                    <Undo
+                      size={24}
+                      strokeWidth={1.75}
+                      className="text-gray-500 hover:text-primary transition duration-300"
+                      onClick={() => actions.history.undo()}
+                    />
+                  )}
+                </div>
+                <div className="w-8">
+                  {canRedo && (
+                    <Redo
+                      size={24}
+                      strokeWidth={1.75}
+                      className="text-gray-500 hover:text-primary transition duration-300"
+                      onClick={() => actions.history.redo()}
+                    />
+                  )}
+                </div>
               </div>
-              <div className="w-8">
-                {canRedo && (
-                  <Redo
-                    size={24}
+              
+              <button
+                onClick={togglePreview}
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 transition duration-300"
+              >
+                {isPreview ? (
+                  <EyeOff
+                    size={20}
                     strokeWidth={1.75}
-                    className="text-gray-500 hover:text-primary transition duration-300"
-                    onClick={(event) => {
-                      actions.history.redo();
-                    }}
+                    className="text-gray-700"
+                  />
+                ) : (
+                  <Eye
+                    size={20}
+                    strokeWidth={1.75}
+                    className="text-gray-700"
                   />
                 )}
-              </div>
+              </button>
             </div>
           </div>
-        </div>
 
-        <div
-          className="w-full flex-1 bg-white rounded-b-lg"
-          ref={(ref) => {
-            if (ref) {
-              connect(drag(ref));
-            }
-          }}
-        >
-          {children}
+          <div
+            className="w-full flex-1 bg-white rounded-b-lg"
+            ref={(ref) => {
+              if (ref) {
+                connect(drag(ref));
+              }
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
-    </div>
+    </PreviewContext.Provider>
   );
 };
 

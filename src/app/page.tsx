@@ -15,6 +15,8 @@ import { componentStrings } from '@/lib/test-string'
 import { CodeGenerator } from '@/components/codeGenerator'
 import { ResizableComponent } from '@/components/resizableComponent'
 import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { PlaceholdersAndVanishInput } from '@/components/ui/placeholders-and-vanish-input'
+
 
 interface NewContentProps {
   buttonStrings: string[];
@@ -277,25 +279,27 @@ const App = () => {
     setSelectedId
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPrompt(e.target.value);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleGenerate();
+  };
+
+
+  const placeholders = [
+    "Enter your prompt...",
+    "Describe your component...",
+    "What would you like to create?",
+    "Type your idea here...",
+  ];
+
   return (
     <CodeGenerationContext.Provider value={contextValue}>
-      <div className="p-4">
-        <div className="mb-4 flex items-center">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter your prompt"
-            className="flex-grow p-2 mr-2 border border-gray-300 rounded"
-          />
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-          >
-            {isGenerating ? 'Generating...' : 'Generate Code'}
-          </button>
-        </div>
+      <div className="p-4 pb-20">
+        
         {error && <p className="text-red-500 mt-2">{error}</p>}
         <Editor
           resolver={{
@@ -319,6 +323,17 @@ const App = () => {
           <ContentUpdater />
         </Editor>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-transparent dark:bg-zinc-900 shadow-lg p-4">
+        <div className="max-w-4xl mx-auto">
+          <PlaceholdersAndVanishInput
+            placeholders={placeholders}
+            onChange={handleInputChange}
+            onSubmit={handleSubmit}
+          />
+        </div>
+      </div>
+
     </CodeGenerationContext.Provider>
   );
 };

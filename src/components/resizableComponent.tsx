@@ -3,12 +3,14 @@ import { useNode } from '@craftjs/core';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { CodeGenerationContext } from '@/app/page';
+import { PreviewContext } from '@/components/wrapper';
 
-export const ResizableComponent = ({ id = '1', width = 'auto', height = 'auto', children }) => {
+export const ResizableComponent = ({id = '1', width = 'auto', height = 'auto', children }) => {
   const { connectors: { connect, drag }, actions: { setProp } } = useNode();
   const containerRef = useRef(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const { selectedId, setSelectedId } = useContext(CodeGenerationContext);
+  const { isPreview } = useContext(PreviewContext);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -33,16 +35,18 @@ export const ResizableComponent = ({ id = '1', width = 'auto', height = 'auto', 
   const pixelHeight = getPixelValue(height, 'height');
 
   const handleClick = () => {
-    setSelectedId(id);
+    if (!isPreview) {
+      setSelectedId(id);
+    }
   };
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ 
+    <div
+      ref={containerRef}
+      style={{
         display: 'inline-block',
         verticalAlign: 'top',
-        margin: '5px',
+        margin: isPreview ? '0' : '5px',
         maxWidth: '100%',
         maxHeight: '100%',
       }}
@@ -53,30 +57,29 @@ export const ResizableComponent = ({ id = '1', width = 'auto', height = 'auto', 
           height={pixelHeight}
           minConstraints={[50, 30]}
           onResize={(e, { size }) => {
-            setProp(props => {
-              props.width = `${size.width}px`;
-              props.height = `${size.height}px`;
-            });
+            if (!isPreview) {
+              setProp(props => {
+                props.width = `${size.width}px`;
+                props.height = `${size.height}px`;
+              });
+            }
           }}
-          resizeHandles={['se']}
+          resizeHandles={isPreview ? [] : ['se']}
+          draggableOpts={{ disabled: isPreview }}
         >
-          <div 
+          <div
             ref={(ref) => connect(drag(ref)) as any}
             style={{
               width: '100%',
               height: '100%',
-              border: '1px solid #ccc',
-              // padding: '5px',
+              border: isPreview ? 'none' : (selectedId === id ? '2px solid #e6f7ff' : '1px solid #ccc'),
+              padding: '5px',
               boxSizing: 'border-box',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              backgroundColor: selectedId === id ? '#e6f7ff' : 'transparent',
+              overflow: 'hidden'
             }}
             onClick={handleClick}
           >
-            {React.Children.map(children, child =>
-              React.cloneElement(child, { id: id })
-            )}
+            {typeof children === 'string' ? children : React.Children.map(children, child => child)}
           </div>
         </ResizableBox>
       )}
@@ -93,7 +96,6 @@ ResizableComponent.craft = {
   props: {
     width: '100%',
     height: '100%',
-    id: '1'
   },
   related: {
     toolbar: ResizableSettings,
