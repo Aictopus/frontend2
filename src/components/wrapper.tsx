@@ -12,6 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext';
+
 
 export const PreviewContext = createContext({
   isPreview: false,
@@ -45,9 +47,11 @@ export const Wrapper = ({ children, style = {} }: WrapperProps) => {
     setSavedLayouts(layouts.map(key => key.replace('craftjs_layout_', '')));
   }, []);
 
+  const { generatedCodes } = useCodeGenerationContext();
+
   const generateCode = () => {
     const nodes = query.getNodes();
-    const { importString, output } = getOutputCode(nodes);
+    const { importString, output } = getOutputCode(nodes, generatedCodes);
     setOutput(`${importString}\n\n${output}`);
   };
 

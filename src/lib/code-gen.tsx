@@ -1,5 +1,4 @@
-import React from 'react';
-import { Element } from '@craftjs/core';
+// @/lib/code-gen.ts
 import type { Node, Nodes } from '@craftjs/core';
 
 let imports: { displayName: string; importPath: string }[] = [];
@@ -7,11 +6,11 @@ let imports: { displayName: string; importPath: string }[] = [];
 const generateComponentCode = (
   nodesMap: Nodes,
   nodeId: string,
-  level: number
+  level: number,
+  generatedCodes: Record<string, string> 
 ): string => {
   const node = nodesMap[nodeId];
   
-  // Check if node or node.data is undefined
   if (!node || !node.data) {
     console.warn(`Node or node.data is undefined for nodeId: ${nodeId}`);
     return '';
@@ -19,14 +18,22 @@ const generateComponentCode = (
 
   const { displayName, props, nodes, linkedNodes, custom } = node.data;
 
-  // If displayName is undefined, use a fallback
   const componentName = displayName || 'UnknownComponent';
 
   const indentation = getIndentation(level);
+
+  // Special handling for AI Code Generator
+  if (componentName === 'AI Code Generator') {
+    console.log('generatedCodes ', generatedCodes);
+    const id = props.id || '';
+    const generatedCode = generatedCodes[id] || '';
+    const defaultCode = props.defaultCode || '';
+    const code = generatedCode || defaultCode || '// No code available';
+    return `${indentation}<CodeGenerator id="${id}">\n${indentation}  {\`${code.replace(/`/g, '\\`')}\`}\n${indentation}</CodeGenerator>`;
+  }
+
   const openingTag = `<${componentName}${generatePropsString(props || {})}>`;
   const closingTag = `</${componentName}>`;
-
-  console.log(' custom ', componentName, custom);
 
   if (custom && custom.importPath) {
     if (!imports.find((item) => item.displayName === componentName)) {
@@ -45,7 +52,7 @@ const generateComponentCode = (
   } else {
     // Has child nodes, recursively generate code for children
     const childComponents = nodes ? nodes.map((childId) =>
-      generateComponentCode(nodesMap, childId, level + 1)
+      generateComponentCode(nodesMap, childId, level + 1, generatedCodes)
     ) : [];
   
     const childComponentsString = childComponents.length
@@ -53,7 +60,7 @@ const generateComponentCode = (
       : '';
   
     const linkedChildComponents = linkedNodes ? Object.entries(linkedNodes).map(
-      ([key, value]) => generateComponentCode(nodesMap, value, level + 1)
+      ([key, value]) => generateComponentCode(nodesMap, value, level + 1, generatedCodes)
     ) : [];
   
     const linkedChildComponentsString = linkedChildComponents.length
@@ -110,6 +117,7 @@ export function Component() {
 
 const generatePropsString = (props: {
   [key: string]: string | undefined;
+
 }): string => {
   const propsArray = Object.entries(props)
     .filter(([key]) => key !== 'children') // Exclude children from props
@@ -134,7 +142,7 @@ const generateChildString = (
         if (typeof child === 'string') {
           return child;
         } else if (child && typeof child === 'object') {
-          return generateComponentCode({ TEMP: child } as Nodes, 'TEMP', level);
+          return generateComponentCode({ TEMP: child } as Nodes, 'TEMP', level, {});
         }
         return '';
       })
@@ -144,15 +152,20 @@ const generateChildString = (
   }
 };
 
-export const getOutputCode = (nodes: Nodes) => {
+export const getOutputCode = (nodes: Nodes, generatedCodes: Record<string, string>) => {
   imports = [];
 
   console.log('nodes ', nodes);
-  const componentString = generateComponentCode(nodes, 'ROOT', 2);
-  const importString = generateImportStatements(imports);
+  const componentString = generateComponentCode(nodes, 'ROOT', 2, generatedCodes);
+  let importString = generateImportStatements(imports);
+  
+  // Add import for CodeGenerator
+  importString += "\nimport { CodeGenerator } from '@/components/codeGenerator';";
+
   const output = wrapInsideComponent(componentString);
-  console.log(generateImportStatements(imports));
-  console.log('imports ', imports);
+  // console.log(generateImportStatements(imports));
+  // console.log('imports ', imports);
+  // console.log('output ', output);
 
   return { importString, output };
 };

@@ -1,3 +1,4 @@
+// @/hooks/useCodeGenerationContext.ts
 import { useContext } from 'react';
 import { CodeGenerationContext } from '@/contexts/CodeGenerationContext';
 

@@ -1,4 +1,5 @@
-import React, { useContext } from 'react';
+// @/components/codeGenerator.tsx
+import React from 'react';
 import { useNode } from '@craftjs/core';
 import {
   Sandpack,
@@ -9,16 +10,21 @@ import {
 } from "@codesandbox/sandpack-react";
 import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext';
 
-const defaultCode = `export default function App() {
-  return <h1>Welcome to the AI Code Generator!</h1>
+const fallbackCode = `export default function App() {
+  return <h1>Welcome to the AI Code!</h1>
 }`;
 
-export const CodeGenerator = ({ id }) => {
+export const CodeGenerator = ({ id, defaultCode }) => {
   const { connectors: { connect, drag }} = useNode();
-  const { generatedCodes, isGenerating, selectedId } = useCodeGenerationContext();
-
+  const { generatedCodes, isGenerating, selectedId, sendCodeToBackend } = useCodeGenerationContext();
+  console.log('!!!', defaultCode);
   // Use the id to determine which code to display
-  const codeToDisplay = generatedCodes[id] || defaultCode;
+  const codeToDisplay = generatedCodes[id] || defaultCode || fallbackCode;
+
+  const handleClick = async () => {
+    console.log(`Code for id ${id}:`, codeToDisplay);
+    await sendCodeToBackend(id, codeToDisplay);
+  };
 
   return (
     <div 
@@ -30,6 +36,7 @@ export const CodeGenerator = ({ id }) => {
         flexDirection: 'column',
         overflow: 'hidden'
       }}
+      onClick={handleClick}
     >
       <SandpackProvider
         template="react"
@@ -47,11 +54,12 @@ export const CodeGenerator = ({ id }) => {
         }}
       >
         <SandpackLayout>
-          <SandpackPreview           style={{ height: '1000px' }}
- />
-          <SandpackCodeEditor showLineNumbers
-          style={{ height: '1000px' }}
-          readOnly={isGenerating && id === selectedId} />
+          <SandpackPreview style={{ height: '1000px' }} />
+          <SandpackCodeEditor 
+            showLineNumbers
+            style={{ height: '1000px' }}
+            readOnly={isGenerating && id === selectedId} 
+          />
         </SandpackLayout>
       </SandpackProvider>
     </div>
@@ -60,7 +68,9 @@ export const CodeGenerator = ({ id }) => {
 
 CodeGenerator.craft = {
   displayName: 'AI Code Generator',
-  props: {},
+  props: {
+    defaultCode: ''
+  },
   related: {
     toolbar: () => (
       <div>

@@ -1,16 +1,7 @@
 import { useEditor, Editor, Element } from '@craftjs/core'
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { VariantCanvas } from '@/components/variantCanvas'
 import { NodeButton } from '@/components/node/button'
-import {
-	NodeCard,
-	NodeCardHeader,
-	NodeCardContent,
-	NodeCardFooter,
-	NodeCardTitle,
-	NodeCardDescription
-} from '@/components/node/card'
-import { NodeCalendar } from '@/components/node/calendar'
 import { renderComponents } from '@/lib/componentRenderer'
 import { componentMap, componentNameMap } from '@/lib/component-map'
 import {
@@ -21,6 +12,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
+import { SandpackRenderer } from '@/components/SandpackRenderer'
 
 function getComponentName(type) {
 	if (typeof type === 'string') {
@@ -176,50 +170,94 @@ export const ControlPanel = () => {
   }))
 
   const [variants, setVariants] = useState([])
+  const [codeVariants, setCodeVariants] = useState([])
   const [editorKey, setEditorKey] = useState(0)
   const prevActiveRef = useRef(null)
   const [isOpen, setIsOpen] = useState(false)
+  const { generatedCodes, setGeneratedCodes } = useCodeGenerationContext()
+  const [isGeneratingVariants, setIsGeneratingVariants] = useState(false)
+  const [error, setError] = useState(null)
+
+	const [generatingVariantIndex, setGeneratingVariantIndex] = useState(-1);
+
+  const generateCodeVariant = useCallback(async (originalCode, index) => {
+		try {
+			let variantCode = ''
+			setCodeVariants(prev => {
+				const newVariants = [...prev];
+				newVariants[index] = { code: '', isGenerating: true };
+				return newVariants;
+			});
+	
+			await fetchEventSource('https://api-dev.aictopusde.com/api/v1/ai/generate-pages', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
+				},
+				body: JSON.stringify({
+					sessionId: `variant_${index}_${Date.now()}`,
+					prompt: `Generate a variant of the following code that has similar functionality but different implementation:\n\n${originalCode}`,
+					mode: 'DETAIL',
+				}),
+				async onopen(response) {
+					if (!response.ok || response.headers.get('content-type') !== 'text/event-stream') {
+						throw new Error('Failed to establish connection');
+					}
+				},
+				onmessage(event) {
+					const line = event.data.replace(/data:\s*/g, '');
+					variantCode += line || ' ';
+					setCodeVariants(prev => {
+						const newVariants = [...prev];
+						newVariants[index] = { code: variantCode, isGenerating: true };
+						return newVariants;
+					});
+				},
+				onerror(err) {
+					console.error('Error in fetchEventSource:', err);
+					throw err;
+				},
+				onclose() {
+					setCodeVariants(prev => {
+						const newVariants = [...prev];
+						newVariants[index] = { code: variantCode, isGenerating: false };
+						return newVariants;
+					});
+					if (index === 4) setIsGeneratingVariants(false);
+				},
+				openWhenHidden: true,
+			});
+		} catch (error) {
+			console.error('Error generating code variant:', error);
+			setError('An error occurred while generating code variants. Please try again.');
+			setIsGeneratingVariants(false);
+			setCodeVariants(prev => {
+				const newVariants = [...prev];
+				newVariants[index] = { code: '', isGenerating: false };
+				return newVariants;
+			});
+		}
+	}, []);
 
   useEffect(() => {
     if (active && active !== 'ROOT') {
-      const node = query.node(active).get()
-      if (node) {
-        const baseString = generateComponentString(node, query)
-        console.log('Base component string:', baseString)
-
-        // Generate 5 variants with different background colors
-        const newVariants = [
-          { string: baseString, props: node.data.props },
-          ...Array(5)
-            .fill(null)
-            .map(() => {
-              const bgColorClass = generateRandomBgColor()
-              const variantProps = {
-                ...node.data.props,
-                className: `${node.data.props.className || ''} ${bgColorClass}`.trim()
-              }
-              const variantNode = {
-                ...node,
-                data: { ...node.data, props: variantProps }
-              }
-              const variantString = generateComponentString(variantNode, query)
-              console.log('Variant string:', variantString)
-              return { string: variantString, props: variantProps }
-            })
-        ]
-
-        setVariants(newVariants)
-
-        // If the active component has changed, increment the editorKey
-        if (active !== prevActiveRef.current) {
-          setEditorKey((prev) => prev + 1)
-          prevActiveRef.current = active
-        }
+      const node = query.node(active).get();
+      if (node.data.displayName === 'AI Code Generator') {
+        const originalCode = generatedCodes[node.data.props.id] || '';
+        setIsGeneratingVariants(true);
+        setError(null);
+        setCodeVariants(Array(5).fill(''));
+        
+        // Generate variants sequentially
+        (async () => {
+          for (let i = 0; i < 5; i++) {
+            await generateCodeVariant(originalCode, i);
+          }
+        })();
       }
-    } else {
-      setVariants([])
     }
-  }, [active, query])
+  }, [active, query, generatedCodes, generateCodeVariant]);
 
   const handleReplace = (variantProps) => {
     if (active && active !== 'ROOT') {
@@ -230,9 +268,15 @@ export const ControlPanel = () => {
     setIsOpen(false)
   }
 
-  const handleFullReplace = (variantString) => {
+	const handleFullReplace = (variantCode) => {
     if (active && active !== 'ROOT') {
-      const node = query.node(active).get()
+      const node = query.node(active).get();
+      if (node.data.displayName === 'AI Code Generator') {
+        setGeneratedCodes(prevCodes => ({
+          ...prevCodes,
+          [node.data.props.id]: variantCode
+        }));
+      } else {
       const parentId = node.data.parent
       const currentIndex = query
         .node(parentId)
@@ -240,7 +284,7 @@ export const ControlPanel = () => {
         .data.nodes.indexOf(active)
 
       try {
-        const parsedComponents = renderComponents(variantString)
+        const parsedComponents = renderComponents(variantCode)
 
         const processComponent = (component) => {
           const craftElement = createCraftElement(component)
@@ -271,29 +315,41 @@ export const ControlPanel = () => {
     }
     setIsOpen(false)
   }
+}
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="ml-2">
-          Variants
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
-        <DialogHeader>
-          <DialogTitle>Component Variants</DialogTitle>
-        </DialogHeader>
-        {active && active !== 'ROOT' && (
-          <div className="p-4">
-            <h4 className="text-sm font-semibold mt-4 mb-2">Variants:</h4>
-            {variants.map((variant, index) => {
-              const VariantComponent = renderComponents(variant.string)
+return (
+  <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <DialogTrigger asChild>
+      <Button variant="outline" className="ml-2">
+        Variants
+      </Button>
+    </DialogTrigger>
+    <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+      <DialogHeader>
+        <DialogTitle>Component Variants</DialogTitle>
+      </DialogHeader>
+      {active && active !== 'ROOT' && (
+        <div className="p-4">
+          <h4 className="text-sm font-semibold mt-4 mb-2">Original Component:</h4>
+          {variants.map((variant, index) => {
+            const VariantComponent = renderComponents(variant.string)
+            const node = query.node(active).get()
+            const isCodeGenerator = node.data.displayName === 'AI Code Generator'
 
-              return (
-                <div
-                  key={`${editorKey}-${index}`}
-                  className="mb-4 border p-2 rounded"
-                >
+            return (
+              <div
+                key={`${editorKey}-${index}`}
+                className="mb-4 border p-2 rounded"
+              >
+                {isCodeGenerator ? (
+                  <div>
+                    <h5 className="text-sm font-semibold mb-2">Generated Code:</h5>
+                    <SandpackRenderer 
+                      code={generatedCodes[node.data.props.id] || ''} 
+                      isGenerating={false}
+                    />
+                  </div>
+                ) : (
                   <div className="mb-2" style={{ height: '100px' }}>
                     <Editor
                       key={`${editorKey}-${index}`}
@@ -306,56 +362,61 @@ export const ControlPanel = () => {
                       </VariantCanvas>
                     </Editor>
                   </div>
-                  <pre className="text-xs bg-gray-100 p-2 rounded overflow-x-auto mb-2">
-                    <code>{variant.string}</code>
-                  </pre>
-                  <p className="text-xs text-gray-600 mb-2">
-                    Class: {variant.props.className}
-                  </p>
+                )}
+              </div>
+            )
+          })}
+          
+          {active && query.node(active).get().data.displayName === 'AI Code Generator' && (
+            <div>
+              <h4 className="text-sm font-semibold mt-6 mb-2">Code Variants:</h4>
+              {codeVariants.map((variant, index) => (
+                <div key={index} className="mb-4 border p-2 rounded">
+                  <SandpackRenderer 
+                    code={variant.code} 
+                    isGenerating={variant.isGenerating}
+                  />
                   <Button
                     variant="default"
-                    className="mr-2"
-                    onClick={() => handleReplace(variant.props)}
-                  >
-                    Replace Props
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleFullReplace(variant.string)}
+                    className="mt-2"
+                    onClick={() => handleFullReplace(variant.code)}
+                    disabled={variant.isGenerating || !variant.code}
                   >
                     Full Replace
                   </Button>
                 </div>
-              )
-            })}
-
-            <h4 className="text-sm font-semibold mt-6 mb-2">
-              Unrelated Component:
-            </h4>
-            <div className="mb-4 border p-2 rounded">
-              <div className="mb-2" style={{ height: '100px' }}>
-                <Editor
-                  resolver={{
-                    ...componentMap,
-                    UnrelatedButton
-                  }}
-                >
-                  <VariantCanvas>
-                    <UnrelatedButton />
-                  </VariantCanvas>
-                </Editor>
-              </div>
-              <Button
-                variant="default"
-                onClick={() => handleFullReplace(UnrelatedButton)}
-              >
-                Replace with Unrelated Button
-              </Button>
+              ))}
+              {error && <p className="text-red-500 mt-2">{error}</p>}
             </div>
+          )}
+
+          <h4 className="text-sm font-semibold mt-6 mb-2">
+            Unrelated Component:
+          </h4>
+          <div className="mb-4 border p-2 rounded">
+            <div className="mb-2" style={{ height: '100px' }}>
+              <Editor
+                resolver={{
+                  ...componentMap,
+                  UnrelatedButton
+                }}
+              >
+                <VariantCanvas>
+                  <UnrelatedButton />
+                </VariantCanvas>
+              </Editor>
+            </div>
+            <Button
+              variant="default"
+              onClick={() => handleFullReplace(UnrelatedButton)}
+            >
+              Replace with Unrelated Button
+            </Button>
           </div>
-        )}
-        {active && related?.toolbar && React.createElement(related.toolbar)}
-      </DialogContent>
-    </Dialog>
-  )
+        </div>
+      )}
+      {active && related?.toolbar && React.createElement(related.toolbar)}
+    </DialogContent>
+  </Dialog>
+);
 }

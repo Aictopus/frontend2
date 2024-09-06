@@ -1,8 +1,10 @@
+// @/lib/componentRenderer.tsx
 import React from 'react';
 import { Element } from '@craftjs/core';
 import { ResizableComponent } from '@/components/resizableComponent';
 import { DynamicContent } from '@/components/dynamicContent';
 import { componentMap } from '@/lib/component-map'
+import { renderToString } from 'react-dom/server';
 
 function parseProps(attributesString) {
   const props = {};
@@ -56,7 +58,20 @@ function createComponent(name, props, children) {
           {children}
         </Element>
       );
-    } else {
+    }
+    else if (name === 'CodeGenerator') {
+      // Special handling for CodeGenerator
+      const codeContent = children.reduce((acc, child) => {
+        if (typeof child === 'string') {
+          return acc + child;
+        } else if (React.isValidElement(child)) {
+          return acc + renderToString(child);
+        }
+        return acc;
+      }, '');
+      return <Element key={Math.random()} is={Component} canvas {...props} defaultCode={codeContent}>{children}</Element>;
+    }
+    else {
       return <Element key={Math.random()} is={Component} canvas {...props}>{children}</Element>;
     }
   } else {

@@ -3,7 +3,7 @@
 import React, { useEffect, useState,createContext } from 'react'
 import { Editor, Frame, Element, useEditor, useNode } from '@craftjs/core'
 import { renderComponents } from '@/lib/componentRenderer'
-import { Canvas } from '@/components/canvas'
+// import { Canvas } from '@/components/canvas'
 import { Wrapper } from '@/components/wrapper'
 import { SideMenu } from '@/components/side-menu'
 import { ControlPanel } from '@/components/control-panel'
@@ -17,7 +17,6 @@ import { ResizableComponent } from '@/components/resizableComponent'
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { PlaceholdersAndVanishInput } from '@/components/ui/placeholders-and-vanish-input'
 import { CodeGenerationContext } from '@/contexts/CodeGenerationContext'
-
 
 interface NewContentProps {
   buttonStrings: string[];
@@ -195,22 +194,14 @@ const ContentUpdater = () => {
   return null;
 };
 
-
-// export const CodeGenerationContext = createContext(null);
-
-const defaultCode = `export default function App() {
-  return <h1>Welcome to the AI Code Generator!</h1>
-}`;
-
 const App = () => {
   const [prompt, setPrompt] = useState('');
   const [selectedId, setSelectedId] = useState('1');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedCodes, setGeneratedCodes] = useState({
-    '1': defaultCode,
-    '2': defaultCode
-  });
+  const [generatedCodes, setGeneratedCodes] = useState({});
   const [error, setError] = useState(null);
+  const [chatHistory, setChatHistory] = useState([]);
+
 
   const handleGenerate = async () => {
     if (prompt.trim() === '') {
@@ -221,11 +212,13 @@ const App = () => {
     setIsGenerating(true);
     setError(null);
 
-    // Clear the existing code for the selected component
-    setGeneratedCodes(prevCodes => ({
-      ...prevCodes,
-      [selectedId]: ''
-    }));
+    // Add user input to chat history
+    setChatHistory(prevHistory => [
+      ...prevHistory,
+      { id: Date.now().toString(), content: prompt, isUser: true }
+    ]);
+    let generatedCode = '';
+
 
     try {
       await fetchEventSource('https://api-dev.aictopusde.com/api/v1/ai/generate-pages', {
@@ -235,7 +228,7 @@ const App = () => {
           'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
         },
         body: JSON.stringify({
-          sessionId: '012575',
+          sessionId: '0125875',
           prompt,
           mode: 'DETAIL',
         }),
@@ -246,9 +239,12 @@ const App = () => {
         },
         onmessage(event) {
           const line = event.data.replace(/data:\s*/g, '');
+          generatedCode += line || ' ';
+          
+          // Update generatedCodes for real-time display
           setGeneratedCodes(prevCodes => ({
             ...prevCodes,
-            [selectedId]: (prevCodes[selectedId] || '') + (line || ' ')
+            [selectedId]: generatedCode
           }));
         },
         onerror(err) {
@@ -256,6 +252,18 @@ const App = () => {
         },
         onclose() {
           setIsGenerating(false);
+          
+          // Add final generated code to chat history
+          setChatHistory(prevHistory => [
+            ...prevHistory,
+            { id: Date.now().toString(), content: generatedCode, isUser: false }
+          ]);
+
+          // Update generatedCodes with the final result
+          setGeneratedCodes(prevCodes => ({
+            ...prevCodes,
+            [selectedId]: generatedCode
+          }));
         },
         openWhenHidden: true,
       });
@@ -263,7 +271,22 @@ const App = () => {
       console.error('Error generating code:', error);
       setError('An error occurred while generating code. Please try again.');
       setIsGenerating(false);
+
+      // Add error message to chat history
+      setChatHistory(prevHistory => [
+        ...prevHistory,
+        { id: Date.now().toString(), content: 'Error: Failed to generate code.', isUser: false }
+      ]);
     }
+  };
+
+  const sendCodeToBackend = async (id: string, code: string) => {
+    console.log(`Sending code for id ${id} to backend:`, code);
+    // Implementation for sending code to backend
+  };
+
+  const getAllGeneratedCodes = () => {
+    return generatedCodes;
   };
 
   const contextValue = {
@@ -277,7 +300,9 @@ const App = () => {
     setError,
     handleGenerate,
     selectedId,
-    setSelectedId
+    setSelectedId,
+    sendCodeToBackend,
+    getAllGeneratedCodes,
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,13 +314,13 @@ const App = () => {
     handleGenerate();
   };
 
-
   const placeholders = [
     "Enter your prompt...",
     "Describe your component...",
     "What would you like to create?",
     "Type your idea here...",
   ];
+
 
   return (
     <CodeGenerationContext.Provider value={contextValue}>
@@ -331,6 +356,7 @@ const App = () => {
             placeholders={placeholders}
             onChange={handleInputChange}
             onSubmit={handleSubmit}
+            chatHistory={chatHistory}
           />
         </div>
       </div>

@@ -1,3 +1,4 @@
+// @/contexts/CodeGenerationContext.ts
 import { createContext, Dispatch, SetStateAction } from 'react';
 
 type CodeGenerationContextType = {
@@ -12,6 +13,8 @@ type CodeGenerationContextType = {
   handleGenerate: () => Promise<void>;
   selectedId: string;
   setSelectedId: Dispatch<SetStateAction<string>>;
+  sendCodeToBackend: (id: string, code: string) => Promise<void>; // New function
+  getAllGeneratedCodes: () => Record<string, string>; // New function
 };
 
 export const CodeGenerationContext = createContext<CodeGenerationContextType | undefined>(undefined);

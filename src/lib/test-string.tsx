@@ -1,19 +1,36 @@
 // @/lib/test-string.tsx
 export const componentStrings = [
 `
-<ResizableComponent id="1" width="45%" height="40%" className="p-4">
-  <CodeGenerator />
+<ResizableComponent id="1" width="99%" height="25%" className="p-4">
+  <CodeGenerator>
+        import React from 'react'; const App = () => <div><h1>Header</h1></div>; export default App;
+  </CodeGenerator>
 </ResizableComponent>`,
 `
-<ResizableComponent id="2" width="40%" height="40%" className="p-4">
-  <CodeGenerator />
+<ResizableComponent id="2" width="31%" height="50%" className="p-4">
+  <CodeGenerator>
+    import React from 'react'; const App = () => <div><h1>Sidebar</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+  </CodeGenerator>
 </ResizableComponent>
 `,
 `
-<ResizableComponent id="3" width="40%" height="40%" className="p-4">
-  Header
-</ResizableComponent>
+<ResizableComponent id="3" width="67%" height="50%" className="p-4">
+  <CodeGenerator>
+        import React from 'react'; const App = () => <div><h1>Device Showcase Section</h1></div>; export default App;
+  </CodeGenerator>
+</ResizableComponent>`,
 `
+<ResizableComponent id="4" width="99%" height="25%" className="p-4">
+  <CodeGenerator>
+        import React from 'react'; const App = () => <div><h1>Video Showcase</h1></div>; export default App;
+  </CodeGenerator>
+</ResizableComponent>`,
+`
+<ResizableComponent id="5" width="99%" height="25%" className="p-4">
+  <CodeGenerator>
+        import React from 'react'; const App = () => <div><h1>Footer</h1></div>; export default App;
+  </CodeGenerator>
+</ResizableComponent>`
  ];
   
  const componentStrings1 = [
