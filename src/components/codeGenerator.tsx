@@ -165,7 +165,7 @@ export const CodeGenerator = ({ id, defaultCode }) => {
         </DialogTrigger>
         <DialogContent showOverlay={false} className="max-w-3xl max-h-[80vh] overflow-auto bg-white dark:bg-gray-800">
           <DialogHeader>
-            <DialogTitle>Code Variants</DialogTitle>
+            {/* <DialogTitle>Code Variants</DialogTitle> */}
           </DialogHeader>
           <div className="p-4">
           <div className="mb-6">
