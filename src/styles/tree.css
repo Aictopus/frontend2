@@ -1,0 +1,112 @@
+.tree-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    width: 70%;
+    margin-left: 0;
+    min-height: calc(100vh - 40px);
+    position: relative;
+}
+
+.tree-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    margin-bottom: 40px;
+}
+
+.node-content {
+    border: 1px solid #e0e0e0;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    min-width: 200px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.node-content:hover {
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.node-content h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.node-content p {
+    margin: 5px 0;
+    color: #666;
+}
+
+.node-children {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    padding-top: 20px;
+    width: 100%;
+}
+
+
+.tree-node:not(.level-0)::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    height: 20px;
+    width: 2px;
+    background-color: #b0bec5;
+}
+
+.tree-node.level-0 > .node-content {
+    background-color: #e3f2fd;
+}
+
+.tree-node.level-1 > .node-content {
+    background-color: #e8f5e9;
+}
+
+.tree-node.level-2 > .node-content {
+    background-color: #fff3e0;
+}
+
+.tree-node::before {
+    transition: background-color 0.3s ease;
+}
+
+.tree-node:hover::before {
+    background-color: #78909c;
+}
+
+
+.node-children .tree-node {
+    margin: 0 10px;
+}
+
+
+.next-button {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.next-button:hover {
+    background-color: #45a049;
+}
+
+.tree-node {
+    margin-bottom: 60px;
+}

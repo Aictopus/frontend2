@@ -1,6 +1,6 @@
 // @/app/page.tsx
 "use client"
-import React, { useEffect, useState,createContext } from 'react'
+import React, { useEffect, useState, createContext } from 'react'
 import { Editor, Frame, Element, useEditor, useNode } from '@craftjs/core'
 import { renderComponents } from '@/lib/componentRenderer'
 // import { Canvas } from '@/components/canvas'
@@ -228,7 +228,7 @@ const App = () => {
           'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
         },
         body: JSON.stringify({
-          sessionId: '0125875',
+          sessionId: '01258975',
           prompt,
           mode: 'DETAIL',
         }),
@@ -344,7 +344,7 @@ const App = () => {
                 </Element>
               </Frame>
             </Viewport>
-            <ControlPanel />
+            {/* <ControlPanel /> */}
           </div>
           <ContentUpdater />
         </Editor>
