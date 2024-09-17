@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useContext } from 'react';
-import { useNode } from '@craftjs/core';
+import { useNode, useEditor, Editor, Element } from '@craftjs/core';
 import {
   Sandpack,
   SandpackProvider,
@@ -21,15 +21,52 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { PlaceholdersAndVanishInput } from '@/components/ui/placeholders-and-vanish-input';
 import { CodeGenerationContext } from '@/contexts/CodeGenerationContext';
 import styles from './dialog.module.css';
+import { componentMap, componentNameMap } from '@/lib/component-map'
+import { renderComponents } from '@/lib/componentRenderer'
 
 const fallbackCode = `export default function App() {
   return <h1>Welcome to the AI Code!</h1>
 }`;
 
+const createCraftElement = (component) => {
+  if (typeof component !== 'object' || component === null) {
+    return component;
+  }
+
+  const { type, props } = component;
+  const Component = componentMap[type] || type;
+
+  if (!Component) {
+    console.error(`Component type "${type}" not found in componentMap`);
+    return null;
+  }
+
+  const craftProps = { ...props };
+
+  if (props && props.children) {
+    craftProps.children = Array.isArray(props.children)
+      ? props.children.map(createCraftElement)
+      : createCraftElement(props.children);
+  }
+
+  return (
+    <Element canvas is={Component} {...craftProps}>
+      {craftProps.children}
+    </Element>
+  );
+};
+
 export const CodeGenerator = ({ id, defaultCode }) => {
+
+  const { active, related, query, actions } = useEditor((state, query) => ({
+    active: query.getEvent('selected').first(),
+    related: state.nodes[query.getEvent('selected').first()]?.related
+  }))
+
   const { connectors: { connect, drag }} = useNode();
   const { 
     generatedCodes, 
+    setGeneratedCodes,
     isGenerating, 
     selectedId, 
     sendCodeToBackend,
@@ -44,6 +81,9 @@ export const CodeGenerator = ({ id, defaultCode }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [codeVariants, setCodeVariants] = useState([]);
   const [error, setError] = useState(null);
+  const [isOpen, setIsOpen] = useState(false)
+
+
 
   const generateCodeVariant = useCallback(async (originalCode, index) => {
     try {
@@ -118,10 +158,57 @@ export const CodeGenerator = ({ id, defaultCode }) => {
     }
   };
 
+
+
   const handleFullReplace = (variantCode) => {
-    sendCodeToBackend(id, variantCode);
-    setIsDialogOpen(false);
-  };
+    console.log('called', variantCode)
+    if (active && active !== 'ROOT') {
+      const node = query.node(active).get();
+      if (node.data.displayName === 'AI Code Generator') {
+        setGeneratedCodes(prevCodes => ({
+          ...prevCodes,
+          [node.data.props.id]: variantCode
+        }));
+      } else {
+      const parentId = node.data.parent
+      const currentIndex = query
+        .node(parentId)
+        .get()
+        .data.nodes.indexOf(active)
+
+      try {
+        const parsedComponents = renderComponents(variantCode)
+
+        const processComponent = (component) => {
+          const craftElement = createCraftElement(component)
+
+          if (craftElement) {
+            console.log('craftElement', craftElement)
+            const nodeTree = query.parseReactElement(craftElement).toNodeTree()
+            actions.addNodeTree(nodeTree, parentId, currentIndex)
+            console.log('nodeTree', nodeTree)
+          }
+        }
+
+        console.log('Parsed components:', parsedComponents)
+
+        if (Array.isArray(parsedComponents)) {
+          console.log('!')
+          parsedComponents.forEach(processComponent)
+        } else {
+          console.log('!!')
+          processComponent(parsedComponents)
+        }
+
+        // Delete the old node
+        actions.delete(active)
+      } catch (error) {
+        console.error('Error updating content:', error)
+      }
+    }
+    setIsOpen(false)
+  }
+}
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrompt(e.target.value);

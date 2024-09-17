@@ -15,6 +15,10 @@ type CodeGenerationContextType = {
   setSelectedId: Dispatch<SetStateAction<string>>;
   sendCodeToBackend: (id: string, code: string) => Promise<void>; // New function
   getAllGeneratedCodes: () => Record<string, string>; // New function
+  generatedTexts: Record<string, string>;
+  setGeneratedTexts: Dispatch<SetStateAction<Record<string, string>>>;
+  newGeneratedCode: string;
+  setNewGeneratedCode: Dispatch<SetStateAction<string>>;
 };
 
 export const CodeGenerationContext = createContext<CodeGenerationContextType | undefined>(undefined);

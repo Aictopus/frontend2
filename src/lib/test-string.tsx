@@ -2,10 +2,9 @@
 export const componentStrings = [
 `
 <ResizableComponent id="1" width="99%" height="25%" className="p-4">
-  <CodeGenerator>
-        import React from 'react'; const App = () => <div><h1>Header</h1></div>; export default App;
-  </CodeGenerator>
-</ResizableComponent>`,
+  <TextGenerator> Footer </TextGenerator>
+</ResizableComponent>
+`,
 `
 <ResizableComponent id="2" width="31%" height="50%" className="p-4">
   <CodeGenerator>

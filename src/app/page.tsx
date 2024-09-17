@@ -13,10 +13,12 @@ import { DynamicContent } from '@/components/dynamicContent';
 import { componentMap } from '@/lib/component-map'
 import { componentStrings } from '@/lib/test-string'
 import { CodeGenerator } from '@/components/codeGenerator'
+import { TextGenerator } from '@/components/textGenerator'
 import { ResizableComponent } from '@/components/resizableComponent'
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { PlaceholdersAndVanishInput } from '@/components/ui/placeholders-and-vanish-input'
 import { CodeGenerationContext } from '@/contexts/CodeGenerationContext'
+// import { EditorContent } from '@/components/EditorContent';
 
 interface NewContentProps {
   buttonStrings: string[];
@@ -194,6 +196,69 @@ const ContentUpdater = () => {
   return null;
 };
 
+const CodeGenerationHandler = () => {
+  const { actions, query } = useEditor();
+  const { newGeneratedCode, setGeneratedCodes } = React.useContext(CodeGenerationContext);
+
+  useEffect(() => {
+    const convertTextGeneratorsToCodeGenerators = async () => {
+      const nodes = query.getNodes();
+
+      for (const [nodeId, node] of Object.entries(nodes)) {
+        if (node.data.type === TextGenerator) {
+          const parentId = node.data.parent;
+          const currentIndex = query
+            .node(parentId)
+            .get()
+            .data.nodes.indexOf(nodeId);
+
+          try {
+            const parsedComponents = renderComponents(newGeneratedCode);
+
+            const processComponent = (component) => {
+              const craftElement = createCraftElement({
+                type: CodeGenerator,
+                props: {
+                  id: nodeId,
+                  defaultCode: newGeneratedCode
+                }
+              });
+
+              if (craftElement) {
+                const nodeTree = query.parseReactElement(craftElement).toNodeTree();
+                actions.addNodeTree(nodeTree, parentId, currentIndex);
+              }
+            };
+
+            if (Array.isArray(parsedComponents)) {
+              parsedComponents.forEach(processComponent);
+            } else {
+              processComponent(parsedComponents);
+            }
+
+            actions.delete(nodeId);
+
+            setGeneratedCodes(prevCodes => ({
+              ...prevCodes,
+              [nodeId]: newGeneratedCode
+            }));
+          } catch (error) {
+            console.error('Error updating content:', error);
+          }
+        }
+      }
+    };
+
+    if (newGeneratedCode) {
+      console.log("newGeneratedCode", newGeneratedCode)
+      convertTextGeneratorsToCodeGenerators();
+    }
+  }, [newGeneratedCode, actions, query, setGeneratedCodes]);
+
+  return null;
+};
+
+
 const App = () => {
   const [prompt, setPrompt] = useState('');
   const [selectedId, setSelectedId] = useState('1');
@@ -201,6 +266,8 @@ const App = () => {
   const [generatedCodes, setGeneratedCodes] = useState({});
   const [error, setError] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
+  const [generatedTexts, setGeneratedTexts] = useState({});
+  const [newGeneratedCode, setNewGeneratedCode] = useState('');
 
 
   const handleGenerate = async () => {
@@ -228,7 +295,7 @@ const App = () => {
           'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
         },
         body: JSON.stringify({
-          sessionId: '01258975',
+          sessionId: '012580975',
           prompt,
           mode: 'DETAIL',
         }),
@@ -259,6 +326,9 @@ const App = () => {
             { id: Date.now().toString(), content: generatedCode, isUser: false }
           ]);
 
+          setNewGeneratedCode(generatedCode);
+
+
           // Update generatedCodes with the final result
           setGeneratedCodes(prevCodes => ({
             ...prevCodes,
@@ -266,7 +336,9 @@ const App = () => {
           }));
         },
         openWhenHidden: true,
+
       });
+
     } catch (error) {
       console.error('Error generating code:', error);
       setError('An error occurred while generating code. Please try again.');
@@ -279,6 +351,7 @@ const App = () => {
       ]);
     }
   };
+
 
   const sendCodeToBackend = async (id: string, code: string) => {
     console.log(`Sending code for id ${id} to backend:`, code);
@@ -303,10 +376,21 @@ const App = () => {
     setSelectedId,
     sendCodeToBackend,
     getAllGeneratedCodes,
+    generatedTexts,
+    setGeneratedTexts,
+    newGeneratedCode,
+    setNewGeneratedCode,
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrompt(e.target.value);
+  };
+
+  const handleInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      await handleGenerate();
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -331,6 +415,8 @@ const App = () => {
           resolver={{
             ...componentMap,
             CodeGenerator,
+            TextGenerator,
+            // EditorContent,
             ResizableComponent,
             Wrapper,
           }}
@@ -339,13 +425,17 @@ const App = () => {
             <SideMenu componentsMap={componentsMap} />
             <Viewport>
               <Frame>
-                <Element is={Wrapper} canvas>
-                  <Element is={DynamicContent}>{null}</Element>
+              {/* <EditorContent /> */}
+              
+
+                <Element is={Wrapper} canvas id="root_wrapper">
+                  <Element is={DynamicContent} id="dynamic_content">{null}</Element>
                 </Element>
               </Frame>
             </Viewport>
             {/* <ControlPanel /> */}
           </div>
+          <CodeGenerationHandler />
           <ContentUpdater />
         </Editor>
       </div>

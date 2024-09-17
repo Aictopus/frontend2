@@ -1,5 +1,6 @@
 import { Element } from '@craftjs/core'
 import { CodeGenerator } from '@/components/codeGenerator'
+import { TextGenerator } from '@/components/textGenerator'
 import { ResizableComponent } from '@/components/resizableComponent'
 import { NodeButton } from '@/components/node/button'
 import {
@@ -70,6 +71,7 @@ export const componentMap = {
 	// em: 'em',
 	// strong: 'strong',
 	CodeGenerator,
+	TextGenerator,
 	ResizableComponent,
 	NodeAccordion,
 	NodeAccordionTrigger,

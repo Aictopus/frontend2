@@ -5,6 +5,8 @@ import 'react-resizable/css/styles.css';
 import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext';
 import { PreviewContext } from '@/components/wrapper';
 
+const GRID_SIZE = 40; // Size of each grid cell in pixels
+
 export const ResizableComponent = ({id = '1', width = 'auto', height = 'auto', children }) => {
   const { connectors: { connect, drag }, actions: { setProp } } = useNode();
   const containerRef = useRef(null);
@@ -40,6 +42,13 @@ export const ResizableComponent = ({id = '1', width = 'auto', height = 'auto', c
     }
   };
 
+  const snapToGrid = (size) => {
+    return {
+      width: Math.round(size.width / GRID_SIZE) * GRID_SIZE,
+      height: Math.round(size.height / GRID_SIZE) * GRID_SIZE
+    };
+  };
+
   return (
     <div
       ref={containerRef}
@@ -55,17 +64,19 @@ export const ResizableComponent = ({id = '1', width = 'auto', height = 'auto', c
         <ResizableBox
           width={pixelWidth}
           height={pixelHeight}
-          minConstraints={[50, 30]}
+          minConstraints={[GRID_SIZE, GRID_SIZE]}
+          maxConstraints={[containerSize.width, containerSize.height]}
           onResize={(e, { size }) => {
             if (!isPreview) {
+              const snappedSize = snapToGrid(size);
               setProp(props => {
-                props.width = `${size.width}px`;
-                props.height = `${size.height}px`;
+                props.width = `${snappedSize.width}px`;
+                props.height = `${snappedSize.height}px`;
               });
             }
           }}
           resizeHandles={isPreview ? [] : ['se']}
-          draggableOpts={{ disabled: isPreview }}
+          draggableOpts={{ grid: [GRID_SIZE, GRID_SIZE], disabled: isPreview }}
         >
           <div
             ref={(ref) => connect(drag(ref)) as any}

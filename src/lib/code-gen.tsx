@@ -32,6 +32,11 @@ const generateComponentCode = (
     return `${indentation}<CodeGenerator id="${id}">\n${indentation}  {\`${code.replace(/`/g, '\\`')}\`}\n${indentation}</CodeGenerator>`;
   }
 
+  if (componentName === 'TextGenerator') {
+    const content = props.children || '';
+    return `${indentation}<TextGenerator onTextChange={(newText) => updateNodeContent('${nodeId}', newText)}>${content}</TextGenerator>`;
+  }
+
   const openingTag = `<${componentName}${generatePropsString(props || {})}>`;
   const closingTag = `</${componentName}>`;
 

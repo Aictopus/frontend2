@@ -269,6 +269,7 @@ export const ControlPanel = () => {
   }
 
 	const handleFullReplace = (variantCode) => {
+    console.log('called', variantCode)
     if (active && active !== 'ROOT') {
       const node = query.node(active).get();
       if (node.data.displayName === 'AI Code Generator') {
@@ -371,7 +372,8 @@ return (
             <div>
               <h4 className="text-sm font-semibold mt-6 mb-2">Code Variants:</h4>
               {codeVariants.map((variant, index) => (
-                <div key={index} className="mb-4 border p-2 rounded">
+                <div   onClick={() => console.log('Outer div clicked')}
+                key={index} className="mb-4 border p-2 rounded">
                   <SandpackRenderer 
                     code={variant.code} 
                     isGenerating={variant.isGenerating}
@@ -379,8 +381,11 @@ return (
                   <Button
                     variant="default"
                     className="mt-2"
-                    onClick={() => handleFullReplace(variant.code)}
-                    disabled={variant.isGenerating || !variant.code}
+                    onClick={() => {
+                      console.log('Button clicked');
+                      handleFullReplace(variant.code);
+                    }}
+                    // disabled={variant.isGenerating || !variant.code}
                   >
                     Full Replace
                   </Button>
