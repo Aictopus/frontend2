@@ -12,16 +12,20 @@ export default clerkMiddleware((auth, req) => {
     searchParams.length > 0 ? `?${searchParams}` : ''
   }`
 
-  const customSubDomain = hostname
-    .get('host')
-    ?.split(`${process.env.NEXT_PUBLIC_DOMAIN}`)
-    .filter(Boolean)[0]
+  // const customSubDomain = hostname
+  //   .get('host')
+  //   ?.split(`${process.env.NEXT_PUBLIC_DOMAIN}`)
+  //   .filter(Boolean)[0]
+  
+  const host = req.headers.get('host') || ''
+  const domainParts = host.split('.')
+  const customSubDomain = domainParts.length > 2 ? domainParts[0] : null
 
-  if (customSubDomain) {
-    return NextResponse.rewrite(
-      new URL(`/${customSubDomain}${pathWithSearchParams}`, req.url)
-    )
-  }
+    if (customSubDomain) {
+      return NextResponse.rewrite(
+        new URL(`/${customSubDomain}${pathWithSearchParams}`, req.url)
+      )
+    }
 
   if (url.pathname === '/sign-in' || url.pathname === '/sign-up') {
     return NextResponse.redirect(new URL(`/agency/sign-in`, req.url))
