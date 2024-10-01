@@ -1,3 +1,4 @@
+// @/components/resizableComponent.tsx
 import React, { useRef, useEffect, useState, useContext } from 'react';
 import { useNode } from '@craftjs/core';
 import { ResizableBox } from 'react-resizable';

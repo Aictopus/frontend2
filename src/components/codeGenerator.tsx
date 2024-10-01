@@ -312,7 +312,22 @@ export const CodeGenerator = ({ id, defaultCode }) => {
         customSetup={{
           dependencies: {
             "react": "^18.0.0",
-            "react-dom": "^18.0.0"
+            "react-dom": "^18.0.0",
+            "framer-motion": "^10.12.16", // 添加 framer-motion 依赖
+            "three": "^0.156.1",
+"axios": "^1.4.0",              // 用于网络请求
+      "lodash": "^4.17.21",           // 实用工具库
+      "moment": "^2.29.4",            // 日期处理库
+      "antd": "^5.8.6",               // Ant Design 组件库
+      "styled-components": "^5.3.11", // CSS in JS 解决方案
+      "react-router-dom": "^6.14.2",  // 路由管理
+      "mobx": "^6.10.2",              // 状态管理库
+      "mobx-react": "^7.6.0",
+      "redux": "^4.2.1",              // 状态管理库
+      "react-redux": "^8.1.2",
+      "recoil": "^0.7.7",             // 状态管理库
+      "d3": "^7.8.5",                 // 数据可视化库
+      "chart.js": "^4.4.0",           // 图表绘制库
           }
         }}
       >

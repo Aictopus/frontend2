@@ -93,7 +93,17 @@ export const componentStrings = [
     </ResizableComponent>`
      ];
 
-export const componentStrings3 = [`
+export const componentStrings3 = [
+  `
+  <ResizableComponent id="2" width="99%" height="99%" className="p-4">
+  <CodeGenerator>
+    import React from 'react'; const App = () => <div><h1>Sidebar</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+  </CodeGenerator>
+</ResizableComponent>
+`
+]
+
+export const componentStrings8 = [`
 <ResizableComponent width="100%" height="auto" className="p-4">
   <NodeCard className="w-full">
     <NodeCardHeader>

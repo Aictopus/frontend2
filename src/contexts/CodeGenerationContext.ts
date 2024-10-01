@@ -13,13 +13,12 @@ type CodeGenerationContextType = {
   handleGenerate: () => Promise<void>;
   selectedId: string;
   setSelectedId: Dispatch<SetStateAction<string>>;
-  sendCodeToBackend: (id: string, code: string) => Promise<void>; // New function
-  getAllGeneratedCodes: () => Record<string, string>; // New function
+  sendCodeToBackend: (id: string, code: string) => Promise<void>;
+  getAllGeneratedCodes: () => Record<string, string>;
   generatedTexts: Record<string, string>;
   setGeneratedTexts: Dispatch<SetStateAction<Record<string, string>>>;
   newGeneratedCode: string;
   setNewGeneratedCode: Dispatch<SetStateAction<string>>;
-
 };
 
 export const CodeGenerationContext = createContext<CodeGenerationContextType | undefined>(undefined);
