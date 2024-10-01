@@ -1,3 +1,4 @@
+// @/components/codeGenerator.tsx
 import React, { useState, useCallback, useContext } from 'react';
 import { useNode, useEditor, Editor, Element } from '@craftjs/core';
 import {
@@ -7,7 +8,6 @@ import {
   SandpackCodeEditor,
   SandpackPreview,
 } from "@codesandbox/sandpack-react";
-import { useCodeGenerationContext } from '@/hooks/useCodeGenerationContext';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -228,6 +228,14 @@ export const CodeGenerator = ({ id, defaultCode }) => {
 
   const chatHistory = [];
 
+  // const filesToDisplay = files || {
+    const filesToDisplay = {
+    "/App.js": {
+      code: defaultCode || fallbackCode,
+      active: true
+    }
+  };
+
   return (
     <div 
       ref={(ref) => connect(drag(ref) as any)}
@@ -261,7 +269,8 @@ export const CodeGenerator = ({ id, defaultCode }) => {
                 onChange={handleInputChange}
                 onSubmit={handleSubmit}
                 chatHistory={chatHistory}
-                showChatHistory={false}
+                functionList={[]}
+                // showChatHistory={false}
               />
             </div>
             {/* <h4 className="text-sm font-semibold mt-4 mb-2">Original Code:</h4> */}
@@ -299,6 +308,7 @@ export const CodeGenerator = ({ id, defaultCode }) => {
             active: true
           },
         }}
+        // files={filesToDisplay}
         customSetup={{
           dependencies: {
             "react": "^18.0.0",
@@ -308,11 +318,11 @@ export const CodeGenerator = ({ id, defaultCode }) => {
       >
         <SandpackLayout>
           <SandpackPreview style={{ height: '500px' }} />
-          {/* <SandpackCodeEditor 
+          <SandpackCodeEditor 
             showLineNumbers
             style={{ height: '500px' }}
             readOnly={isGenerating && id === selectedId} 
-          /> */}
+          />
         </SandpackLayout>
       </SandpackProvider>
     </div>

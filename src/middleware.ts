@@ -1,10 +1,20 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from 'next/server'
 
-const publicRoutes = createRouteMatcher(['/site', '/api/uploadthing']);
+const publicRoutes = createRouteMatcher([
+  '/site',
+  '/api/uploadthing',
+  '/api/functionlists(.*)',
+]);
 
 export default clerkMiddleware((auth, req) => {
   const url = req.nextUrl
+
+   // 允许所有以 /api 开头的请求直接通过
+   if (url.pathname.startsWith('/api')) {
+    return NextResponse.next();
+  }
+  
   const searchParams = url.searchParams.toString()
   let hostname = req.headers
 

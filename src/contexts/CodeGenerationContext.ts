@@ -19,6 +19,7 @@ type CodeGenerationContextType = {
   setGeneratedTexts: Dispatch<SetStateAction<Record<string, string>>>;
   newGeneratedCode: string;
   setNewGeneratedCode: Dispatch<SetStateAction<string>>;
+
 };
 
 export const CodeGenerationContext = createContext<CodeGenerationContextType | undefined>(undefined);

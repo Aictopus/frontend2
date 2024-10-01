@@ -6,12 +6,11 @@ import { renderComponents } from '@/lib/componentRenderer'
 // import { Canvas } from '@/components/canvas'
 import { Wrapper } from '@/components/wrapper'
 import { SideMenu } from '@/components/side-menu'
-import { ControlPanel } from '@/components/control-panel'
+// import { ControlPanel } from  '@/components/control-panel'
 import { Viewport } from '@/components/viewport'
 import { componentsMap } from '@/components/node/components-map'
 import { DynamicContent } from '@/components/dynamicContent';
 import { componentMap } from '@/lib/component-map'
-import { componentStrings } from '@/lib/test-string'
 import { CodeGenerator } from '@/components/codeGenerator'
 import { TextGenerator } from '@/components/textGenerator'
 import { ResizableComponent } from '@/components/resizableComponent'
@@ -20,108 +19,12 @@ import { PlaceholdersAndVanishInput } from '@/components/ui/placeholders-and-van
 import { CodeGenerationContext } from '@/contexts/CodeGenerationContext'
 // import { EditorContent } from '@/components/EditorContent';
 
-interface NewContentProps {
-  buttonStrings: string[];
-  stage: number;
+interface PageData {
+  id: string;
+  componentStrings: string[];
 }
 
-interface CraftComponent<T> extends React.FC<T> {
-  craft: {
-    displayName: string;
-    props: Partial<T>;
-    related: {
-      toolbar: () => React.ReactElement;
-    };
-  };
-}
 
-const NewContent: CraftComponent<NewContentProps> = ({ buttonStrings, stage }) => {
-  const { connectors: { connect, drag } } = useNode();
-
-  const renderContent = () => {
-    const combinedString = buttonStrings.slice(stage, stage + 1).join('\n');
-    const ButtonComponent = renderComponents(combinedString);
-		return (
-      <Element 
-        id="dynamic_content_container" 
-        is={Container} 
-        canvas 
-        className={`dynamic-class-${stage}`}
-      >
-        {ButtonComponent}
-      </Element>
-    );
-  };
-
-	return (<div>{renderContent()}</div>);
-  // return (
-  //   <div
-  //     ref={(ref) => connect(drag(ref))}
-  //     className="p-2 m-1 border border-dashed border-gray-300"
-  //   >
-  //     {renderContent()}
-  //   </div>
-  // );
-};
-
-NewContent.craft = {
-  displayName: '',
-  props: {
-    buttonStrings: [],
-    stage: 0
-  },
-  related: {
-    toolbar: () => <div>Custom Toolbar</div>
-  }
-};
-
-
-// TextBox component
-const TextBox = ({ text, className }) => {
-	const {
-		connectors: { connect, drag }
-	} = useNode()
-
-	return (
-		<div
-      ref={(ref) => connect(drag(ref)) as any}
-			className={`bg-blue-100 p-2 m-2 border border-dashed border-blue-300 ${className}`}
-		>
-			{text}
-		</div>
-	)
-}
-
-TextBox.craft = {
-	displayName: 'Text Box',
-	props: {
-		text: 'Draggable Text Box',
-		className: ''
-	}
-}
-
-// Container component
-const Container = ({ children, className }) => {
-	const {
-		connectors: { connect, drag }
-	} = useNode()
-
-	return (
-		<div
-    ref={(ref) => connect(drag(ref)) as any}
-			className={`  min-h-[100px] border border-dashed border-green-300 ${className}`}
-		>
-			{children}
-		</div>
-	)
-}
-
-Container.craft = {
-	displayName: 'Container',
-	props: {
-		className: ''
-	}
-}
 
 
 const createCraftElement = (component) => {
@@ -152,13 +55,30 @@ const createCraftElement = (component) => {
   );
 };
 // Updated ContentUpdater component
-const ContentUpdater = () => {
+const ContentUpdater = ({ currentPage }) => {
   const { actions, query } = useEditor();
   const [stage, setStage] = useState(0);
 
+  // Move clearCurrentContent outside of useEffect
+  const clearCurrentContent = () => {
+    const nodes = query.getNodes();
+    Object.keys(nodes).forEach((nodeId) => {
+      if (nodeId !== 'ROOT' && nodes[nodeId].data.parent === 'ROOT') {
+        actions.delete(nodeId);
+      }
+    });
+  };
+  
+
+  // Add useEffect to reset stage and clear content when currentPage changes
+  useEffect(() => {
+    setStage(0);
+    clearCurrentContent();
+  }, [currentPage]);
+
   useEffect(() => {
     const addComponent = () => {
-      if (stage >= componentStrings.length) {
+      if (stage === currentPage.componentStrings.length) {
         console.log('All stages have been added.');
         return;
       }
@@ -166,35 +86,36 @@ const ContentUpdater = () => {
       console.log('Adding stage:', stage);
 
       try {
-        const currentComponentString = componentStrings[stage];
-        console.log("mycomp", currentComponentString)
+        const currentComponentString = currentPage.componentStrings[stage];
         const parsedComponents = renderComponents(currentComponentString);
         parsedComponents.forEach((parsedComponent) => {
-          console.log("myparse", parsedComponent)
           const craftElement = createCraftElement(parsedComponent);
-          console.log("mycraft", craftElement)
           if (craftElement) {
             const nodeTree = query.parseReactElement(craftElement).toNodeTree();
-            console.log("mynode", nodeTree)
             actions.addNodeTree(nodeTree, 'ROOT');
           }
         });
 
-        setStage(prevStage => prevStage + 1);
+        setStage((prevStage) => prevStage + 1);
+
+        if (stage === currentPage.componentStrings.length - 1) {
+          console.log('All stages have been added!');
+          return;
+        }
       } catch (error) {
         console.error('Error updating content:', error);
       }
     };
 
-    // Only add the component if we haven't reached the end
-    if (stage < componentStrings.length) {
-      const timer = setTimeout(addComponent, 1000); // Increased delay to 1 second
+    if (stage < currentPage.componentStrings.length) {
+      const timer = setTimeout(addComponent, 100);
       return () => clearTimeout(timer);
     }
-  }, [actions, query, stage, componentStrings]);
+  }, [actions, query, stage, currentPage.componentStrings]);
 
   return null;
 };
+
 
 const CodeGenerationHandler = () => {
   const { actions, query } = useEditor();
@@ -269,6 +190,96 @@ const App = () => {
   const [generatedTexts, setGeneratedTexts] = useState({});
   const [newGeneratedCode, setNewGeneratedCode] = useState('');
 
+  const [pagesData, setPagesData] = useState<PageData[]>([]);
+  const [currentPageIndex, setCurrentPageIndex] = useState(0);
+  const [currentPageData, setCurrentPageData] = useState<PageData | null>(null);
+
+  const [pageStages, setPageStages] = useState(pagesData.map(() => 0));
+  const [functionList, setFunctionList] = useState<{ id: string; content: string }[]>([]);
+
+  useEffect(() => {
+    handlePageChange(currentPageIndex);
+  }, []);
+
+
+ // 在组件挂载时获取页面数据
+ useEffect(() => {
+  const fetchPagesData = async () => {
+    try {
+      const pageIds = ['page1', 'page2', 'page3'];
+      const pagesPromises = pageIds.map(async (pageId) => {
+        const response = await fetch(`/api/pages/${pageId}`);
+        if (response.ok) {
+          const data = await response.json();
+          return data.pageData;
+        } else {
+          console.error(`Failed to fetch data for ${pageId}`);
+          return null;
+        }
+      });
+      const pages = await Promise.all(pagesPromises);
+      const filteredPages = pages.filter((page) => page !== null);
+      setPagesData(filteredPages as PageData[]);
+
+      // 设置初始的 currentPageData
+      if (filteredPages.length > 0) {
+        setCurrentPageData(filteredPages[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching pages data:', error);
+    }
+  };
+
+  fetchPagesData();
+}, []);
+
+// 更新 handlePageChange 函数以设置 currentPageData
+const handlePageChange = async (index: number) => {
+  setCurrentPageIndex(index);
+  // 重置生成的代码和其他相关状态
+  setGeneratedCodes({});
+  setNewGeneratedCode('');
+  // 重置当前页面的阶段
+  setPageStages((prevStages) => {
+    const newStages = [...prevStages];
+    newStages[index] = 0;
+    return newStages;
+  });
+
+  // 设置当前页面数据
+  const selectedPageData = pagesData[index];
+  if (selectedPageData) {
+    setCurrentPageData(selectedPageData);
+  } else {
+    console.error('Selected page data not found');
+    setCurrentPageData(null);
+  }
+
+  // 获取新的 function list
+  const pageId = `page${index + 1}`;
+  try {
+    const response = await fetch(`/api/functionlists/${pageId}`);
+    if (response.ok) {
+      const data = await response.json();
+      setFunctionList(data.functionList);
+    } else {
+      console.error('Failed to fetch function list');
+      setFunctionList([]);
+    }
+  } catch (error) {
+    console.error('Error fetching function list:', error);
+    setFunctionList([]);
+  }
+};
+
+
+  const updatePageStage = (pageIndex: number, newStage: number) => {
+    setPageStages(prevStages => {
+      const newStages = [...prevStages];
+      newStages[pageIndex] = newStage;
+      return newStages;
+    });
+  };
 
   const handleGenerate = async () => {
     if (prompt.trim() === '') {
@@ -288,16 +299,19 @@ const App = () => {
 
 
     try {
-      await fetchEventSource('https://api-dev.aictopusde.com/api/v1/ai/generate-pages', {
+      await fetchEventSource('https://api-dev.aictopusde.com/api/v1/projects/ai/assets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
         },
         body: JSON.stringify({
-          sessionId: '012580975',
+          // sessionId: '012580975',
+          // prompt,
+          // mode: 'DETAIL',
+          projectCode: '112244',
           prompt,
-          mode: 'DETAIL',
+          payload: ''
         }),
         async onopen(response) {
           if (!response.ok || response.headers.get('content-type') !== 'text/event-stream') {
@@ -380,17 +394,14 @@ const App = () => {
     setGeneratedTexts,
     newGeneratedCode,
     setNewGeneratedCode,
+    currentPage: pagesData[currentPageIndex],
+    handlePageChange,
+    pageStages,
+    updatePageStage,
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPrompt(e.target.value);
-  };
-
-  const handleInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      await handleGenerate();
-    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -408,7 +419,7 @@ const App = () => {
 
   return (
     <CodeGenerationContext.Provider value={contextValue}>
-      <div className="p-4 pb-20">
+      <div className="h-screen">
         
         {error && <p className="text-red-500 mt-2">{error}</p>}
         <Editor
@@ -422,12 +433,13 @@ const App = () => {
           }}
         >
           <div className="flex flex-1 relative overflow-hidden">
-            <SideMenu componentsMap={componentsMap} />
+            <SideMenu componentsMap={componentsMap}
+            pages={pagesData}
+            currentPageIndex={currentPageIndex}
+            onPageChange={handlePageChange} />
             <Viewport>
               <Frame>
               {/* <EditorContent /> */}
-              
-
                 <Element is={Wrapper} canvas id="root_wrapper">
                   <Element is={DynamicContent} id="dynamic_content">{null}</Element>
                 </Element>
@@ -436,17 +448,19 @@ const App = () => {
             {/* <ControlPanel /> */}
           </div>
           <CodeGenerationHandler />
-          <ContentUpdater />
-        </Editor>
+          {currentPageData && (
+  <ContentUpdater currentPage={currentPageData} />
+)}       </Editor>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-transparen dark:bg-zinc-900 shadow-lg p-4">
         <div className="max-w-4xl mx-auto">
-          <PlaceholdersAndVanishInput
+        <PlaceholdersAndVanishInput
             placeholders={placeholders}
             onChange={handleInputChange}
             onSubmit={handleSubmit}
             chatHistory={chatHistory}
+            functionList={functionList}
           />
         </div>
       </div>

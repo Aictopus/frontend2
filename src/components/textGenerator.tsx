@@ -32,6 +32,7 @@ export const TextGenerator: React.FC<TextGeneratorProps> & UserComponent = ({ ch
 
   const convertToCodeGenerator = () => {
     console.log('convertToCodeGenerator', text);
+    // const codeGeneratorElement = React.createElement(CodeGenerator, { id: id, files: {}, defaultCode: text });
     const codeGeneratorElement = React.createElement(CodeGenerator, { id: id, defaultCode: text });
     const nodeTree = query.parseReactElement(codeGeneratorElement).toNodeTree();
     actions.addNodeTree(nodeTree);

@@ -2,7 +2,9 @@
 export const componentStrings = [
 `
 <ResizableComponent id="1" width="99%" height="25%" className="p-4">
-  <TextGenerator> Footer </TextGenerator>
+  <CodeGenerator>
+    import React from 'react'; const App = () => <div><h1>Sidebar</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+  </CodeGenerator>
 </ResizableComponent>
 `,
 `
@@ -32,12 +34,64 @@ export const componentStrings = [
 </ResizableComponent>`
  ];
   
- const componentStrings1 = [
-  `<ResizableComponent width='100%' height='10%'> <NodeHeader className='bg-gray-800 text-white py-4'> <NodeLogo className='text-xl font-bold'>My Website</NodeLogo> <NodeMenu className='flex'> <NodeMenuItem className='ml-6'>Home</NodeMenuItem> <NodeMenuItem className='ml-6'>About</NodeMenuItem> <NodeMenuItem className='ml-6'>Services</NodeMenuItem> <NodeMenuItem className='ml-6'>Contact</NodeMenuItem> </NodeMenu> </NodeHeader> </ResizableComponent>`,
-  `<ResizableComponent width='100%' height='50%'> <NodeHero className='bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center'> <NodeHeroHeading className='text-4xl font-bold text-white'>Welcome to My Website</NodeHeroHeading> <NodeButton className='bg-white text-purple-500 px-6 py-3 rounded-full mt-8'>Get Started</NodeButton> </NodeHero> </ResizableComponent>`,
-  `<ResizableComponent width='100%' height='40%' className='flex'> <NodeContent className='w-3/4'> <NodeCard className='flex bg-white shadow-lg rounded-lg overflow-hidden my-4'> <NodeCardImage src='https://example.com/card-image-1.jpg' alt='Card Image 1' className='w-1/3' /> <div className='p-4'> <NodeCardTitle className='text-xl font-bold'>Card Title 1</NodeCardTitle> <NodeCardDescription>This is a description of the first card.</NodeCardDescription> <NodeButton className='bg-purple-500 text-white px-4 py-2 rounded mt-4'>Learn More</NodeButton> </div> </NodeCard> </NodeContent> </ResizableComponent>`
-];
+ export const componentStrings1 = [
+  `
+  <ResizableComponent id="1" width="45%" height="25%" className="p-4">
+    <CodeGenerator>
+      import React from 'react'; const App = () => <div><h1>Sidebar</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+    </CodeGenerator>
+  </ResizableComponent>
+  `,
+  `
+  <ResizableComponent id="2" width="55%" height="25%" className="p-4">
+    <CodeGenerator>
+      import React from 'react'; const App = () => <div><h1>Sidebar</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+    </CodeGenerator>
+  </ResizableComponent>
+  `,
+  `
+  <ResizableComponent id="4" width="99%" height="70%" className="p-4">
+    <CodeGenerator>
+          import React from 'react'; const App = () => <div><h1>Video Showcase</h1></div>; export default App;
+    </CodeGenerator>
+  </ResizableComponent>`,
+  `
+  <ResizableComponent id="5" width="99%" height="70%" className="p-4">
+    <CodeGenerator>
+          import React from 'react'; const App = () => <div><h1>Footer</h1></div>; export default App;
+    </CodeGenerator>
+  </ResizableComponent>`
+   ];
 
+
+   export const componentStrings2 = [
+    `
+    <ResizableComponent id="1" width="99%" height="25%" className="p-4">
+      <CodeGenerator>
+        import React from 'react'; const App = () => <div><h1>Header</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+      </CodeGenerator>
+    </ResizableComponent>
+    `,
+    `
+    <ResizableComponent id="2" width="75%" height="50%" className="p-4">
+      <CodeGenerator>
+        import React from 'react'; const App = () => <div><h1>Sidebar</h1><p>This app showcases the power of AI in generating React code.</p></div>; export default App;
+      </CodeGenerator>
+    </ResizableComponent>
+    `,
+    `
+    <ResizableComponent id="3" width="22%" height="50%" className="p-4">
+      <CodeGenerator>
+            import React from 'react'; const App = () => <div><h1>Device Showcase Section</h1></div>; export default App;
+      </CodeGenerator>
+    </ResizableComponent>`,
+    `
+    <ResizableComponent id="5" width="99%" height="40%" className="p-4">
+      <CodeGenerator>
+            import React from 'react'; const App = () => <div><h1>Test</h1></div>; export default App;
+      </CodeGenerator>
+    </ResizableComponent>`
+     ];
 
 export const componentStrings3 = [`
 <ResizableComponent width="100%" height="auto" className="p-4">
@@ -85,7 +139,7 @@ export const componentStrings3 = [`
 </ResizableComponent>
 `];
 
-export const componentStrings2 = [
+export const componentStrings24 = [
   // Header
   `
   <ResizableComponent width="100%" height="10%" className="bg-gradient-to-br from-purple-500 via-pink-500 to-red-500">
