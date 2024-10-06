@@ -100,17 +100,19 @@ export const CodeGenerator = ({ id, defaultCode }) => {
         return newVariants;
       });
 
-      await fetchEventSource('https://api-dev.aictopusde.com/api/v1/ai/generate-pages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA', 
-        },
-        body: JSON.stringify({
-          sessionId: `variant_${index}_${Date.now()}`,
-          prompt: `Generate a variant of the following code that has similar functionality but different implementation:\n\n${originalCode}`,
-          mode: 'DETAIL',
-        }),
+      await fetchEventSource(
+        'https://api-dev.aictopusde.com/api/v1/projects/ai/assets',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA'
+          },
+          body: JSON.stringify({
+            projectCode: '11292448',
+            prompt,
+            payload: ''
+          }),
         async onopen(response) {
           if (!response.ok || response.headers.get('content-type') !== 'text/event-stream') {
             throw new Error('Failed to establish connection');
