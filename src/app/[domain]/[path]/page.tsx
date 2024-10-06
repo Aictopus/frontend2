@@ -340,7 +340,7 @@ const App = () => {
             Authorization: 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA'
           },
           body: JSON.stringify({
-            projectCode: '1122448',
+            projectCode: '112200448',
             prompt,
             payload: ''
           }),
