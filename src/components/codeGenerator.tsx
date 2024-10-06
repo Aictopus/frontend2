@@ -428,11 +428,11 @@ export const CodeGenerator = ({ id, defaultCode }) => {
       >
         <SandpackLayout>
           <SandpackPreview style={{ height: '500px' }} />
-          <SandpackCodeEditor 
+          {/* <SandpackCodeEditor 
             showLineNumbers
             style={{ height: '500px' }}
             readOnly={isGenerating && id === selectedId} 
-          />
+          /> */}
         </SandpackLayout>
       </SandpackProvider>
     </div>
