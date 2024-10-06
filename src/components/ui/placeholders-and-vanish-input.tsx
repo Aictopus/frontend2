@@ -12,13 +12,17 @@ export function PlaceholdersAndVanishInput({
 	onChange,
 	onSubmit,
 	chatHistory,
-	functionList
+	functionList,
+	setFunctionsList,
+	currentPageId
 }: {
 	placeholders: string[]
 	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 	onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
 	chatHistory: { id: string; content: string; isUser: boolean }[]
 	functionList: { id: string; content: string }[]
+	setFunctionsList: (newList: { id: string; content: string }[], pageId: string) => void
+	currentPageId: string
 }) {
 	const [currentPlaceholder, setCurrentPlaceholder] = useState(0)
 
@@ -58,13 +62,9 @@ export function PlaceholdersAndVanishInput({
 	// New state variables
 	const [isChatHistoryVisible, setIsChatHistoryVisible] = useState(false)
 	const [isFunctionListVisible, setIsFunctionListVisible] = useState(false)
-	const [functionsList, setFunctionsList] = useState<
-		{ id: string; content: string }[]
-	>(functionList)
 
 	useEffect(() => {
 		console.log('Received functionList:', functionList)
-		setFunctionsList(functionList)
 	}, [functionList])
 
 	const draw = useCallback(() => {
@@ -194,6 +194,10 @@ export function PlaceholdersAndVanishInput({
 		onSubmit && onSubmit(e)
 	}
 
+	const updateFunctionList = (newList: { id: string; content: string }[]) => {
+		setFunctionsList(newList, currentPageId)
+	}
+
 	return (
 		<>
 			<div className="flex space-x-2 mb-4">
@@ -220,8 +224,9 @@ export function PlaceholdersAndVanishInput({
 			{isFunctionListVisible && (
 				<div className="flex justify-center mb-4">
 					<FunctionList
-						functionsList={functionsList}
-						setFunctionsList={setFunctionsList}
+						functionsList={functionList}
+						setFunctionsList={updateFunctionList}
+						currentPageId={currentPageId}
 					/>
 				</div>
 			)}

@@ -1,6 +1,11 @@
 // @/contexts/CodeGenerationContext.ts
 import { createContext, Dispatch, SetStateAction } from 'react';
 
+type FunctionItem = {
+  id: string;
+  content: string;
+};
+
 type CodeGenerationContextType = {
   prompt: string;
   setPrompt: Dispatch<SetStateAction<string>>;
@@ -19,6 +24,10 @@ type CodeGenerationContextType = {
   setGeneratedTexts: Dispatch<SetStateAction<Record<string, string>>>;
   newGeneratedCode: string;
   setNewGeneratedCode: Dispatch<SetStateAction<string>>;
+  // 新增的功能列表相关属性
+  functionList: FunctionItem[];
+  setFunctionsList: (newList: FunctionItem[], pageId: string) => void;
+  currentPageId: string;
 };
 
 export const CodeGenerationContext = createContext<CodeGenerationContextType | undefined>(undefined);

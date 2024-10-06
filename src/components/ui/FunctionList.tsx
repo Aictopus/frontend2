@@ -11,18 +11,20 @@ import { nanoid } from 'nanoid';
 function FunctionList({
   functionsList,
   setFunctionsList,
+  currentPageId
 }: {
   functionsList: { id: string; content: string }[];
-  setFunctionsList: React.Dispatch<React.SetStateAction<{ id: string; content: string }[]>>;
+  setFunctionsList: (newList: { id: string; content: string }[], pageId: string) => void;
+  currentPageId: string;
 }) {
-  // Use internal state to manage function list
+  // 使用内部状态来管理功能列表
   const [items, setItems] = useState(functionsList);
 
   useEffect(() => {
     setItems(functionsList);
   }, [functionsList]);
 
-  // Handle drag and drop
+  // 处理拖放
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) {
       return;
@@ -35,7 +37,7 @@ function FunctionList({
     );
 
     setItems(reorderedItems);
-    setFunctionsList(reorderedItems);
+    setFunctionsList(reorderedItems, currentPageId);
   };
 
   // Reorder function
@@ -51,7 +53,7 @@ function FunctionList({
     return result;
   };
 
-  // Add new function
+  // 添加新功能
   const addFunction = () => {
     const newItem = {
       id: nanoid(),
@@ -59,23 +61,23 @@ function FunctionList({
     };
     const newItems = [...items, newItem];
     setItems(newItems);
-    setFunctionsList(newItems);
+    setFunctionsList(newItems, currentPageId);
   };
 
-  // Update function content
+  // 更新功能内容
   const updateFunction = (id: string, content: string) => {
     const newItems = items.map((item) =>
       item.id === id ? { ...item, content } : item
     );
     setItems(newItems);
-    setFunctionsList(newItems);
+    setFunctionsList(newItems, currentPageId);
   };
 
-  // Delete function
+  // 删除功能
   const deleteFunction = (id: string) => {
     const newItems = items.filter((item) => item.id !== id);
     setItems(newItems);
-    setFunctionsList(newItems);
+    setFunctionsList(newItems, currentPageId);
   };
 
   return (

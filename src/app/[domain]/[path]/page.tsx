@@ -191,9 +191,17 @@ const App = () => {
 	const [currentPageData, setCurrentPageData] = useState<PageData | null>(null)
 
 	const [pageStages, setPageStages] = useState(pagesData.map(() => 0))
-	const [functionList, setFunctionList] = useState<
+  
+  const [functionList, setFunctionList] = useState<
 		{ id: string; content: string }[]
 	>([])
+
+  const [pagesState, setPagesState] = useState<{
+    [pageId: string]: {
+      generatedCodes: { [id: string]: string };
+      functionList: { id: string; content: string }[];
+    };
+  }>({});
 
 	useEffect(() => {
 		handlePageChange(currentPageIndex)
@@ -230,44 +238,184 @@ const App = () => {
 		fetchPagesData()
 	}, [])
 
-	// 更新 handlePageChange 函数以设置 currentPageData
-	const handlePageChange = async (index: number) => {
-		setCurrentPageIndex(index)
-		// 重置生成的代码和其他相关状态
-		setGeneratedCodes({})
-		setNewGeneratedCode('')
-		// 重置当前页面的阶段
-		setPageStages((prevStages) => {
-			const newStages = [...prevStages]
-			newStages[index] = 0
-			return newStages
-		})
+  const updateFunctionList = (newFunctionList: { id: string; content: string }[], pageId: string) => {
+    setFunctionList(newFunctionList);
+    setPagesState(prevState => ({
+      ...prevState,
+      [pageId]: {
+        ...prevState[pageId],
+        functionList: newFunctionList
+      }
+    }));
+  };
 
-		// 设置当前页面数据
-		const selectedPageData = pagesData[index]
-		if (selectedPageData) {
-			setCurrentPageData(selectedPageData)
-		} else {
-			console.error('Selected page data not found')
-			setCurrentPageData(null)
-		}
-
-		// 获取新的 function list
-		const pageId = `page${index + 1}`
-		try {
-			const response = await fetch(`/api/functionlists/${pageId}`)
-			if (response.ok) {
-				const data = await response.json()
-				setFunctionList(data.functionList)
-			} else {
-				console.error('Failed to fetch function list')
-				setFunctionList([])
-			}
-		} catch (error) {
-			console.error('Error fetching function list:', error)
-			setFunctionList([])
-		}
-	}
+  const handlePageChange = async (index: number) => {
+    setCurrentPageIndex(index);
+    const pageId = `page${index + 1}`;
+  
+    // 如果这个页面之前没有保存过状态，则初始化
+    if (!pagesState[pageId]) {
+      setPagesState(prevState => ({
+        ...prevState,
+        [pageId]: {
+          generatedCodes: {},
+          functionList: []
+        }
+      }));
+    }
+  
+    // 恢复该页面的状态
+    setGeneratedCodes(pagesState[pageId]?.generatedCodes || {});
+    setFunctionList(pagesState[pageId]?.functionList || []);
+  
+    // 如果functionList为空，则从API获取
+    if (!pagesState[pageId]?.functionList.length) {
+      try {
+        const response = await fetch(`/api/functionlists/${pageId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setFunctionList(data.functionList);
+          // 更新pagesState
+          setPagesState(prevState => ({
+            ...prevState,
+            [pageId]: {
+              ...prevState[pageId],
+              functionList: data.functionList
+            }
+          }));
+        } else {
+          console.error('获取功能列表失败');
+          setFunctionList([]);
+        }
+      } catch (error) {
+        console.error('获取功能列表时出错:', error);
+        setFunctionList([]);
+      }
+    }
+  
+    // 设置当前页面数据
+    const selectedPageData = pagesData[index];
+    if (selectedPageData) {
+      setCurrentPageData(selectedPageData);
+    } else {
+      console.error('未找到所选页面数据');
+      setCurrentPageData(null);
+    }
+  
+    // 重置当前页面的阶段
+    setPageStages(prevStages => {
+      const newStages = [...prevStages];
+      newStages[index] = 0;
+      return newStages;
+    });
+  
+    // 重置新生成的代码
+    setNewGeneratedCode('');
+  };
+  
+  const handleGenerate = async () => {
+    if (prompt.trim() === '') {
+      setError('请在生成代码之前输入提示。');
+      return;
+    }
+  
+    setIsGenerating(true);
+    setError(null);
+  
+    // 将用户输入添加到聊天历史
+    setChatHistory(prevHistory => [
+      ...prevHistory,
+      { id: Date.now().toString(), content: prompt, isUser: true }
+    ]);
+  
+    let generatedCode = '';
+  
+    try {
+      await fetchEventSource(
+        'https://api-dev.aictopusde.com/api/v1/projects/ai/assets',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA'
+          },
+          body: JSON.stringify({
+            projectCode: '1122448',
+            prompt,
+            payload: ''
+          }),
+          async onopen(response) {
+            if (!response.ok || response.headers.get('content-type') !== 'text/event-stream') {
+              throw new Error('建立连接失败');
+            }
+          },
+          onmessage(event) {
+            const line = event.data.replace(/data:\s*/g, '');
+            generatedCode += line || ' ';
+  
+            // 更新generatedCodes以实时显示
+            setGeneratedCodes(prevCodes => ({
+              ...prevCodes,
+              [selectedId]: generatedCode
+            }));
+          },
+          onerror(err) {
+            throw err;
+          },
+          onclose() {
+            setIsGenerating(false);
+  
+            // 将最终生成的代码添加到聊天历史
+            setChatHistory(prevHistory => [
+              ...prevHistory,
+              {
+                id: Date.now().toString(),
+                content: generatedCode,
+                isUser: false
+              }
+            ]);
+  
+            setNewGeneratedCode(generatedCode);
+  
+            // 更新generatedCodes和pagesState
+            setGeneratedCodes(prevCodes => {
+              const newCodes = {
+                ...prevCodes,
+                [selectedId]: generatedCode
+              };
+              
+              // 更新pagesState
+              const currentPageId = `page${currentPageIndex + 1}`;
+              setPagesState(prevState => ({
+                ...prevState,
+                [currentPageId]: {
+                  ...prevState[currentPageId],
+                  generatedCodes: newCodes
+                }
+              }));
+  
+              return newCodes;
+            });
+          },
+          openWhenHidden: true
+        }
+      );
+    } catch (error) {
+      console.error('生成代码时出错:', error);
+      setError('生成代码时发生错误。请重试。');
+      setIsGenerating(false);
+  
+      // 将错误消息添加到聊天历史
+      setChatHistory(prevHistory => [
+        ...prevHistory,
+        {
+          id: Date.now().toString(),
+          content: '错误：生成代码失败。',
+          isUser: false
+        }
+      ]);
+    }
+  };
 
 	const updatePageStage = (pageIndex: number, newStage: number) => {
 		setPageStages((prevStages) => {
@@ -275,102 +423,6 @@ const App = () => {
 			newStages[pageIndex] = newStage
 			return newStages
 		})
-	}
-
-	const handleGenerate = async () => {
-		if (prompt.trim() === '') {
-			setError('Please enter a prompt before generating code.')
-			return
-		}
-
-		setIsGenerating(true)
-		setError(null)
-
-		// Add user input to chat history
-		setChatHistory((prevHistory) => [
-			...prevHistory,
-			{ id: Date.now().toString(), content: prompt, isUser: true }
-		])
-		let generatedCode = ''
-
-		try {
-			await fetchEventSource(
-				'https://api-dev.aictopusde.com/api/v1/projects/ai/assets',
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization:
-							'Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhaWN0b3B1cyIsImlhdCI6MTcyNDAyOTYzNiwiZXhwIjoxODk2ODI5NjM2fQ.2B2fARX74hql9eeZyqbc9Wh2ibtMLTaH0W2Ri0XnEINcoKT41tcQBF0zn-shdx_s30CRtPpwzrCkFg7BZVKCkA'
-					},
-					body: JSON.stringify({
-						// sessionId: '012580975',
-						// prompt,
-						// mode: 'DETAIL',
-						projectCode: '1122448',
-						prompt,
-						payload: ''
-					}),
-					async onopen(response) {
-						if (
-							!response.ok ||
-							response.headers.get('content-type') !== 'text/event-stream'
-						) {
-							throw new Error('Failed to establish connection')
-						}
-					},
-					onmessage(event) {
-						const line = event.data.replace(/data:\s*/g, '')
-						generatedCode += line || ' '
-
-						// Update generatedCodes for real-time display
-						setGeneratedCodes((prevCodes) => ({
-							...prevCodes,
-							[selectedId]: generatedCode
-						}))
-					},
-					onerror(err) {
-						throw err
-					},
-					onclose() {
-						setIsGenerating(false)
-
-						// Add final generated code to chat history
-						setChatHistory((prevHistory) => [
-							...prevHistory,
-							{
-								id: Date.now().toString(),
-								content: generatedCode,
-								isUser: false
-							}
-						])
-
-						setNewGeneratedCode(generatedCode)
-
-						// Update generatedCodes with the final result
-						setGeneratedCodes((prevCodes) => ({
-							...prevCodes,
-							[selectedId]: generatedCode
-						}))
-					},
-					openWhenHidden: true
-				}
-			)
-		} catch (error) {
-			console.error('Error generating code:', error)
-			setError('An error occurred while generating code. Please try again.')
-			setIsGenerating(false)
-
-			// Add error message to chat history
-			setChatHistory((prevHistory) => [
-				...prevHistory,
-				{
-					id: Date.now().toString(),
-					content: 'Error: Failed to generate code.',
-					isUser: false
-				}
-			])
-		}
 	}
 
 	const sendCodeToBackend = async (id: string, code: string) => {
@@ -403,7 +455,10 @@ const App = () => {
 		currentPage: pagesData[currentPageIndex],
 		handlePageChange,
 		pageStages,
-		updatePageStage
+		updatePageStage,
+    functionList,
+    setFunctionsList: updateFunctionList,
+    currentPageId: `page${currentPageIndex + 1}`,
 	}
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -464,13 +519,15 @@ const App = () => {
 
 			<div className="fixed bottom-0 left-0 right-0 bg-transparen dark:bg-zinc-900 shadow-lg p-4">
 				<div className="max-w-4xl mx-auto">
-					<PlaceholdersAndVanishInput
-						placeholders={placeholders}
-						onChange={handleInputChange}
-						onSubmit={handleSubmit}
-						chatHistory={chatHistory}
-						functionList={functionList}
-					/>
+        <PlaceholdersAndVanishInput
+        placeholders={placeholders}
+        onChange={handleInputChange}
+        onSubmit={handleSubmit}
+        chatHistory={chatHistory}
+        functionList={functionList}
+        setFunctionsList={updateFunctionList}
+        currentPageId={`page${currentPageIndex + 1}`}
+      />
 				</div>
 			</div>
 		</CodeGenerationContext.Provider>
